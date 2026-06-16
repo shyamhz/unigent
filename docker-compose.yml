@@ -1,0 +1,16 @@
+services:
+  postgres:
+    container_name: unigentdb
+    image: postgres:17
+    restart: on-failure
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_USER: unigent
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: unigent
+    volumes:
+    - postgres:/var/lib/postgresql/data
+
+volumes:
+  postgres:

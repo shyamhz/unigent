@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "skills": {
+    "corsair": {
+      "source": "corsairdev/corsair",
+      "sourceType": "github",
+      "skillPath": "skills/corsair/SKILL.md",
+      "computedHash": "1035052660d4ed4ee1f10719f2d40af0a902d735a5da3744ae8d220f3d889f93"
+    },
+    "react-best-practices": {
+      "source": "vercel/vercel-plugin",
+      "sourceType": "github",
+      "skillPath": "skills/react-best-practices/SKILL.md",
+      "computedHash": "bdb13a3a239c067136b39cf77a34462ccc0dd4645d440362182409dcfd331221"
+    }
+  }
+}

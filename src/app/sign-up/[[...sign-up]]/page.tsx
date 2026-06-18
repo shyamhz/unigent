@@ -1,4 +1,5 @@
 import { SignUp } from "@clerk/nextjs";
+import { clerkAuthUrls } from "@/lib/clerk-env";
 
 export default function SignUpPage() {
   return (
@@ -11,9 +12,9 @@ export default function SignUpPage() {
           },
         }}
         routing="path"
-        path="/sign-up"
-        signInUrl="/sign-in"
-        fallbackRedirectUrl="/dashboard"
+        path={clerkAuthUrls.signUp}
+        signInUrl={clerkAuthUrls.signIn}
+        fallbackRedirectUrl={clerkAuthUrls.signUpFallbackRedirect}
       />
     </div>
   );

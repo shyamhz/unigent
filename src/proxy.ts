@@ -1,5 +1,6 @@
 import { clerkMiddleware, createRouteMatcher, clerkClient } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { clerkMiddlewareKeys } from "@/lib/clerk-env";
 
 const isPublicRoute = createRouteMatcher([
   "/sign-in(.*)",
@@ -64,7 +65,7 @@ export const proxy = clerkMiddleware(async (auth, request) => {
   if (isLandingPage(request)) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
-});
+}, clerkMiddlewareKeys);
 
 export const config = {
   matcher: [

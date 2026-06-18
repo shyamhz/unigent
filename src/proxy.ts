@@ -71,7 +71,9 @@ export const proxy = clerkMiddleware(async (auth, request) => {
   if (isLandingPage(request)) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
-}, clerkMiddlewareKeys);
+}, {
+  publishableKey: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
+});
 
 export const config = {
   matcher: [

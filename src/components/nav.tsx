@@ -2,10 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import { Menu, Moon, Sun } from 'lucide-react'
+import { SignInButton, SignOutButton, UserButton, useAuth } from '@clerk/nextjs'
 
 export function Nav() {
   const [isDark, setIsDark] = useState(true)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const { isSignedIn } = useAuth()
 
   useEffect(() => {
     document.documentElement.classList.add('dark')
@@ -55,15 +57,29 @@ export function Nav() {
             >
               {isDark ? <Sun size={18} /> : <Moon size={18} />}
             </button>
-            <a
-              href="#signin"
-              className="hidden sm:inline text-sm text-foreground/70 hover:text-foreground transition"
-            >
-              Sign in
-            </a>
-            <button className="bg-accent text-accent-foreground px-4 py-2 rounded-lg text-sm font-medium hover:bg-accent/90 transition">
-              Get early access
-            </button>
+            {!isSignedIn ? (
+              <>
+                <SignInButton mode="modal">
+                  <button className="hidden sm:inline text-sm text-foreground/70 hover:text-foreground transition cursor-pointer">
+                    Sign in
+                  </button>
+                </SignInButton>
+                <a
+                  href="/sign-up"
+                  className="bg-accent text-accent-foreground px-4 py-2 rounded-lg text-sm font-medium hover:bg-accent/90 transition"
+                >
+                  Get early access
+                </a>
+              </>
+            ) : (
+              <UserButton
+                appearance={{
+                  elements: {
+                    avatarBox: "h-8 w-8",
+                  },
+                }}
+              />
+            )}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="md:hidden p-2 hover:bg-muted rounded-lg transition"
@@ -87,6 +103,21 @@ export function Nav() {
                 {item}
               </a>
             ))}
+            {!isSignedIn && (
+              <div className="pt-2 border-t border-border mt-2">
+                <SignInButton mode="modal">
+                  <button className="block w-full text-left px-2 py-2 text-sm text-foreground/70 hover:text-foreground transition cursor-pointer">
+                    Sign in
+                  </button>
+                </SignInButton>
+                <a
+                  href="/sign-up"
+                  className="block px-2 py-2 text-sm text-foreground/70 hover:text-foreground transition"
+                >
+                  Get early access
+                </a>
+              </div>
+            )}
           </div>
         )}
       </div>

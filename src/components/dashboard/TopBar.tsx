@@ -1,6 +1,28 @@
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+'use client';
+
+import { useState, useEffect } from 'react';
+import { Moon, Sun } from 'lucide-react';
+import { UserButton } from '@clerk/nextjs';
 
 export default function TopBar() {
+  const [isDark, setIsDark] = useState(true);
+
+  useEffect(() => {
+    const stored = localStorage.getItem('theme');
+    const dark = stored ? stored === 'dark' : true;
+    setIsDark(dark);
+    document.documentElement.classList.toggle('dark', dark);
+    document.documentElement.classList.toggle('light', !dark);
+  }, []);
+
+  const toggle = () => {
+    const next = !isDark;
+    setIsDark(next);
+    localStorage.setItem('theme', next ? 'dark' : 'light');
+    document.documentElement.classList.toggle('dark', next);
+    document.documentElement.classList.toggle('light', !next);
+  };
+
   return (
     <header className="sticky top-0 z-50 grid h-12 grid-cols-3 items-center border-b border-border/50 bg-background/80 px-5 backdrop-blur-xl">
       {/* Left */}
@@ -32,11 +54,19 @@ export default function TopBar() {
         <div className="flex items-center gap-1.5">
           <span className="text-[0.65rem] text-muted-foreground/60">6 actions</span>
         </div>
-        <Avatar className="h-6 w-6">
-          <AvatarFallback className="bg-gradient-to-br from-teal-800 to-teal-700 text-[0.6rem] font-medium">
-            JM
-          </AvatarFallback>
-        </Avatar>
+        <button
+          onClick={toggle}
+          className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors"
+        >
+          {isDark ? <Sun size={14} /> : <Moon size={14} />}
+        </button>
+        <UserButton
+          appearance={{
+            elements: {
+              avatarBox: "h-7 w-7",
+            },
+          }}
+        />
       </div>
     </header>
   );

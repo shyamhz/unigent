@@ -269,6 +269,48 @@
   animation: bounce-dot 0.6s ease-in-out infinite;
 }
 
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-shimmer {
+  position: relative;
+  overflow: hidden;
+  background: var(--secondary);
+  border-radius: inherit;
+}
+
+.animate-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.06) 40%,
+    rgba(255, 255, 255, 0.12) 50%,
+    rgba(255, 255, 255, 0.06) 60%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.8s ease-in-out infinite;
+}
+
+@media (prefers-color-scheme: light) {
+  .animate-shimmer::after {
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(0, 0, 0, 0.04) 40%,
+      rgba(0, 0, 0, 0.08) 50%,
+      rgba(0, 0, 0, 0.04) 60%,
+      transparent 100%
+    );
+    background-size: 200% 100%;
+  }
+}
+
 .animate-slide-in-top {
   animation: slide-in-top 300ms ease-out forwards;
 }
@@ -297,3 +339,4 @@ body::before {
   pointer-events: none;
   z-index: 0;
 }
+

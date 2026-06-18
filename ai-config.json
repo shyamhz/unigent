@@ -1,0 +1,7 @@
+{
+  "model": "qwen/qwen3.6-flash",
+  "temperature": 0.7,
+  "maxTokens": 4096,
+  "maxSteps": 15,
+  "provider": "aicredits"
+}

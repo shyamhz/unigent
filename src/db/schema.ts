@@ -1,4 +1,4 @@
-import { pgTable, text, jsonb, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, jsonb, timestamp, uuid, index } from "drizzle-orm/pg-core";
 
 export const corsairIntegrations = pgTable("corsair_integrations", {
   id: text("id").primaryKey(),
@@ -61,3 +61,37 @@ export const corsairEvents = pgTable("corsair_events", {
   payload: jsonb("payload").notNull().default({}),
   status: text("status"),
 });
+
+export const chatSessions = pgTable(
+  "chat_sessions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id").notNull(),
+    title: text("title").notNull().default("New Chat"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [index("idx_chat_sessions_user").on(table.userId)],
+);
+
+export const chatMessages = pgTable(
+  "chat_messages",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    sessionId: uuid("session_id")
+      .notNull()
+      .references(() => chatSessions.id, { onDelete: "cascade" }),
+    role: text("role").notNull(),
+    content: text("content"),
+    toolCalls: jsonb("tool_calls"),
+    toolResult: jsonb("tool_result"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [index("idx_chat_messages_session").on(table.sessionId)],
+);

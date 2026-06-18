@@ -6,7 +6,7 @@ const isPublicRoute = createRouteMatcher([
   "/sign-in(.*)",
   "/sign-up(.*)",
   "/api/webhooks(.*)",
-  "/api/corsair(.*)",
+  "/api/corsair/oauth/callback",
   "/coming-soon",
 ]);
 
@@ -50,7 +50,13 @@ export const proxy = clerkMiddleware(async (auth, request) => {
         if (freshMeta.onboarded === true) {
           onboarded = true;
         }
-      } catch {
+      } catch (error) {
+        // Log error in production for monitoring
+        console.error("[Clerk Auth] Failed to verify onboarded status:", {
+          userId,
+          error: error instanceof Error ? error.message : "Unknown error",
+          path: request.nextUrl.pathname,
+        });
         // If we can't reach Clerk, fall through with stale JWT value
       }
     }

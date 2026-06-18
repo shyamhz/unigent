@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Unigent Admin</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, 'Segoe UI', sans-serif; background: #0B0B0D; color: #F5F5F7; min-height: 100vh; }
+    .container { max-width: 1100px; margin: 0 auto; padding: 0 20px; }
+
+    /* Login */
+    .login-wrap { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+    .login-card { background: #131316; border: 1px solid rgba(255,255,255,0.10); border-radius: 14px; padding: 36px; width: 100%; max-width: 380px; }
+    .login-logo { text-align: center; margin-bottom: 24px; }
+    .login-logo span { display: inline-flex; align-items: center; gap: 8px; background: rgba(111,107,239,0.12); padding: 8px 16px; border-radius: 8px; font-size: 14px; font-weight: 600; color: #6F6BEF; }
+    .login-card h1 { text-align: center; font-size: 20px; font-weight: 600; margin-bottom: 24px; }
+    label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px; }
+    input, select { width: 100%; background: #1C1C22; border: 1px solid rgba(255,255,255,0.10); border-radius: 8px; padding: 10px 12px; font-size: 14px; color: #F5F5F7; outline: none; }
+    input:focus, select:focus { border-color: #6F6BEF; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; padding: 10px 18px; border-radius: 8px; font-size: 13px; font-weight: 500; border: none; cursor: pointer; transition: opacity 0.15s; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary { background: #6F6BEF; color: #fff; width: 100%; }
+    .btn-primary:hover { background: #5A55D9; }
+    .btn-grant { background: rgba(34,197,134,0.14); color: #6FE3B4; }
+    .btn-grant:hover { background: rgba(34,197,134,0.24); }
+    .btn-revoke { background: rgba(226,75,74,0.16); color: #F09595; }
+    .btn-revoke:hover { background: rgba(226,75,74,0.26); }
+    .btn-ghost { background: transparent; color: #9B9BA3; font-size: 12px; }
+    .btn-ghost:hover { color: #F5F5F7; }
+    .error { color: #F09595; font-size: 13px; margin-bottom: 12px; }
+
+    /* Header */
+    header { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 32px; }
+    .header-left { display: flex; align-items: center; gap: 10px; }
+    .header-left .icon { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; background: rgba(111,107,239,0.12); border-radius: 8px; }
+    .header-left .icon svg { width: 14px; height: 14px; }
+    .header-left span { font-size: 14px; font-weight: 600; }
+
+    /* Stats */
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px; }
+    .stat { background: #131316; border: 1px solid rgba(255,255,255,0.10); border-radius: 14px; padding: 16px; }
+    .stat-label { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; color: #6E6E76; margin-bottom: 4px; }
+    .stat-value { font-size: 24px; font-weight: 600; }
+
+    /* AI Config */
+    .ai-config { background: #131316; border: 1px solid rgba(255,255,255,0.10); border-radius: 14px; padding: 20px; margin-bottom: 32px; }
+    .ai-config h2 { font-size: 14px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+    .ai-config h2 .icon { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; background: rgba(111,107,239,0.12); border-radius: 6px; }
+    .ai-config-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 16px; align-items: end; }
+    .ai-config-grid .field { display: flex; flex-direction: column; gap: 6px; }
+    .ai-config-grid label { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; color: #6E6E76; }
+    .ai-config-grid select, .ai-config-grid input { width: 100%; background: #1C1C22; border: 1px solid rgba(255,255,255,0.10); border-radius: 8px; padding: 10px 12px; font-size: 14px; color: #F5F5F7; outline: none; }
+    .ai-config-grid .btn-save { height: 38px; }
+    .model-tag { display: inline-flex; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 500; margin-left: 6px; }
+    .model-tag-free { background: rgba(34,197,134,0.14); color: #6FE3B4; }
+    .model-tag-pro { background: rgba(111,107,239,0.14); color: #6F6BEF; }
+
+    /* Message */
+    .msg { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.10); border-radius: 8px; padding: 12px 16px; font-size: 13px; margin-bottom: 24px; }
+
+    /* Table */
+    .table-wrap { background: #131316; border: 1px solid rgba(255,255,255,0.10); border-radius: 14px; overflow: hidden; }
+    .table-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+    .table-header h2 { font-size: 14px; font-weight: 600; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { text-align: left; padding: 10px 16px; font-weight: 500; color: #6E6E76; border-bottom: 1px solid rgba(255,255,255,0.06); }
+    td { padding: 10px 16px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+    .user-email { font-size: 12px; color: #6E6E76; }
+    .badge { display: inline-flex; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 500; }
+    .badge-allowed { background: rgba(34,197,134,0.14); color: #6FE3B4; }
+    .badge-pending { background: rgba(255,255,255,0.06); color: #6E6E76; }
+    .badge-onboarded { background: rgba(55,138,221,0.14); color: #85B7EB; }
+    .tier-free { color: #6E6E76; }
+    .tier-pro { color: #6F6BEF; font-weight: 500; }
+    .actions { display: flex; gap: 8px; justify-content: flex-end; align-items: center; }
+    select { width: auto; padding: 6px 8px; font-size: 12px; }
+    .empty { text-align: center; padding: 40px; color: #6E6E76; }
+
+    @media (max-width: 768px) {
+      .stats { grid-template-columns: repeat(2, 1fr); }
+      .actions { flex-direction: column; align-items: stretch; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Login Screen -->
+  <div id="login-screen" class="login-wrap">
+    <div class="login-card">
+      <div class="login-logo">
+        <span>&#9889; Admin</span>
+      </div>
+      <h1>Unigent Admin</h1>
+      <div id="login-error" class="error" style="display:none"></div>
+      <form onsubmit="handleLogin(event)">
+        <label>Password</label>
+        <input type="password" id="password" placeholder="Enter admin password" autofocus />
+        <br/><br/>
+        <button type="submit" class="btn btn-primary" id="login-btn">Sign in</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Dashboard -->
+  <div id="dashboard" style="display:none">
+    <div class="container">
+      <header>
+        <div class="header-left">
+          <div class="icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#6F6BEF" stroke-width="2.5"><path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+          </div>
+          <span>Unigent Admin</span>
+        </div>
+        <button class="btn btn-ghost" onclick="handleLogout()">Sign out</button>
+      </header>
+
+      <div class="stats">
+        <div class="stat"><div class="stat-label">Total Users</div><div class="stat-value" id="stat-total">0</div></div>
+        <div class="stat"><div class="stat-label">Access Granted</div><div class="stat-value" style="color:#6FE3B4" id="stat-allowed">0</div></div>
+        <div class="stat"><div class="stat-label">Onboarded</div><div class="stat-value" style="color:#85B7EB" id="stat-onboarded">0</div></div>
+        <div class="stat"><div class="stat-label">Pro Users</div><div class="stat-value" style="color:#6F6BEF" id="stat-pro">0</div></div>
+      </div>
+
+      <div id="msg" class="msg" style="display:none"></div>
+
+      <div class="ai-config">
+        <h2>
+          <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="#6F6BEF" stroke-width="2" width="12" height="12"><path d="M12 2a4 4 0 014 4c0 1.95-1.4 3.57-3.25 3.92L12 14l-.75-4.08A4 4 0 0112 2z"/><path d="M20 12a8 8 0 11-16 0 8 8 0 0116 0z" stroke-opacity="0.4"/></svg></span>
+          AI Model Configuration
+        </h2>
+        <div class="ai-config-grid">
+          <div class="field">
+            <label>Model</label>
+            <select id="ai-model"></select>
+          </div>
+          <div class="field">
+            <label>Temperature</label>
+            <input type="number" id="ai-temperature" min="0" max="2" step="0.1" />
+          </div>
+          <div class="field">
+            <label>Max Tokens</label>
+            <input type="number" id="ai-max-tokens" min="256" max="32768" step="256" />
+          </div>
+          <div class="field">
+            <button class="btn btn-primary btn-save" onclick="saveAIConfig()">Save Config</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <div class="table-header">
+          <h2>Users</h2>
+          <button class="btn btn-ghost" onclick="loadUsers()" id="refresh-btn">Refresh</button>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>User</th>
+              <th>Status</th>
+              <th>Tier</th>
+              <th>Signed In</th>
+              <th style="text-align:right">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="users-body">
+            <tr><td colspan="5" class="empty">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API = '';
+    let token = '';
+
+    function showMsg(text) {
+      const el = document.getElementById('msg');
+      el.textContent = text;
+      el.style.display = 'block';
+      setTimeout(() => el.style.display = 'none', 4000);
+    }
+
+    async function api(path, method = 'GET', body = null) {
+      const opts = { method, headers: { 'Content-Type': 'application/json' } };
+      if (body) opts.body = JSON.stringify(body);
+      const res = await fetch(API + path, opts);
+      return res.json();
+    }
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      const pw = document.getElementById('password').value;
+      const errEl = document.getElementById('login-error');
+      errEl.style.display = 'none';
+      try {
+        const data = await api('/api/auth', 'POST', { password: pw });
+        if (data.ok) {
+          token = pw;
+          document.getElementById('login-screen').style.display = 'none';
+          document.getElementById('dashboard').style.display = 'block';
+          loadUsers();
+          loadAIConfig();
+        } else {
+          errEl.textContent = 'Invalid password';
+          errEl.style.display = 'block';
+        }
+      } catch {
+        errEl.textContent = 'Connection failed';
+        errEl.style.display = 'block';
+      }
+    }
+
+    function handleLogout() {
+      document.getElementById('dashboard').style.display = 'none';
+      document.getElementById('login-screen').style.display = 'flex';
+      document.getElementById('password').value = '';
+    }
+
+    async function loadUsers() {
+      const btn = document.getElementById('refresh-btn');
+      btn.textContent = 'Loading...';
+      try {
+        const data = await api('/api/users');
+        const users = data.users || [];
+        document.getElementById('stat-total').textContent = users.length;
+        document.getElementById('stat-allowed').textContent = users.filter(u => u.access_allowed).length;
+        document.getElementById('stat-onboarded').textContent = users.filter(u => u.onboarded).length;
+        document.getElementById('stat-pro').textContent = users.filter(u => u.tier === 'pro').length;
+
+        const tbody = document.getElementById('users-body');
+        if (!users.length) {
+          tbody.innerHTML = '<tr><td colspan="5" class="empty">No users found</td></tr>';
+        } else {
+          tbody.innerHTML = users.map(u => `
+            <tr>
+              <td>
+                <div>${esc(u.name)}</div>
+                <div class="user-email">${esc(u.email)}</div>
+              </td>
+              <td>
+                <span class="badge ${u.access_allowed ? 'badge-allowed' : 'badge-pending'}">${u.access_allowed ? 'Allowed' : 'Pending'}</span>
+                ${u.onboarded ? '<span class="badge badge-onboarded" style="margin-left:4px">Onboarded</span>' : ''}
+              </td>
+              <td><span class="${u.tier === 'pro' ? 'tier-pro' : 'tier-free'}">${u.tier === 'pro' ? 'Pro' : 'Free'}</span></td>
+              <td style="color:#6E6E76;font-size:12px">${u.lastSignInAt ? new Date(u.lastSignInAt).toLocaleDateString() : 'Never'}</td>
+              <td>
+                <div class="actions">
+                  ${!u.access_allowed
+                    ? `<button class="btn btn-grant" onclick="grantAccess('${u.id}')">Grant</button>`
+                    : `<button class="btn btn-revoke" onclick="revokeAccess('${u.id}')">Revoke</button>`
+                  }
+                  <select onchange="setTier('${u.id}', this.value)">
+                    <option value="free" ${u.tier === 'free' ? 'selected' : ''}>Free</option>
+                    <option value="pro" ${u.tier === 'pro' ? 'selected' : ''}>Pro</option>
+                  </select>
+                </div>
+              </td>
+            </tr>
+          `).join('');
+        }
+      } catch {
+        document.getElementById('users-body').innerHTML = '<tr><td colspan="5" class="empty">Failed to load</td></tr>';
+      }
+      btn.textContent = 'Refresh';
+    }
+
+    async function grantAccess(userId) {
+      const data = await api('/api/grant', 'POST', { userId });
+      showMsg(data.ok ? 'Access granted. Email sent.' : 'Error: ' + (data.error || 'Unknown'));
+      if (data.ok) loadUsers();
+    }
+
+    async function revokeAccess(userId) {
+      const data = await api('/api/revoke', 'POST', { userId });
+      showMsg(data.ok ? 'Access revoked.' : 'Error: ' + (data.error || 'Unknown'));
+      if (data.ok) loadUsers();
+    }
+
+    async function setTier(userId, tier) {
+      const data = await api('/api/tier', 'POST', { userId, tier });
+      showMsg(data.ok ? `Tier set to ${tier}.` : 'Error: ' + (data.error || 'Unknown'));
+      if (data.ok) loadUsers();
+    }
+
+    function esc(s) {
+      const d = document.createElement('div');
+      d.textContent = s;
+      return d.innerHTML;
+    }
+
+    async function loadAIConfig() {
+      try {
+        const data = await api('/api/ai-config');
+        if (data.config) {
+          const select = document.getElementById('ai-model');
+          const models = data.models || [];
+          const grouped = {};
+          models.forEach(m => {
+            const provider = m.provider || 'other';
+            if (!grouped[provider]) grouped[provider] = [];
+            grouped[provider].push(m);
+          });
+          let options = '';
+          Object.keys(grouped).sort().forEach(provider => {
+            options += `<optgroup label="${esc(provider.toUpperCase())}">`;
+            grouped[provider].forEach(m => {
+              const tag = m.is_free ? '<span class="model-tag model-tag-free">FREE</span>' : '<span class="model-tag model-tag-pro">PRO</span>';
+              options += `<option value="${m.id}" ${m.id === data.config.model ? 'selected' : ''}>${esc(m.name)}${tag}</option>`;
+            });
+            options += '</optgroup>';
+          });
+          select.innerHTML = options;
+          document.getElementById('ai-temperature').value = data.config.temperature;
+          document.getElementById('ai-max-tokens').value = data.config.maxTokens;
+        }
+      } catch {}
+    }
+
+    async function saveAIConfig() {
+      const model = document.getElementById('ai-model').value;
+      const temperature = parseFloat(document.getElementById('ai-temperature').value);
+      const maxTokens = parseInt(document.getElementById('ai-max-tokens').value);
+      const data = await api('/api/ai-config', 'POST', { model, temperature, maxTokens });
+      showMsg(data.ok ? 'AI config saved.' : 'Error: ' + (data.error || 'Unknown'));
+    }
+
+    loadAIConfig();
+  </script>
+</body>
+</html>

@@ -28,8 +28,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(new URL("/sign-in", request.url));
     }
 
-    const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").replace(/\/+$/, "");
-    const redirectUri = `${baseUrl}/api/corsair/oauth/callback`;
+    const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/corsair/oauth/callback`;
 
     await processOAuthCallback(corsair, {
       code,

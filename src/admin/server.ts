@@ -4,7 +4,6 @@ import { createClerkClient } from "@clerk/backend";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { getAIConfig, setAIConfig } from "../lib/ai/config";
-import { getClerkPublishableKey, getClerkSecretKey } from "../lib/clerk-env";
 
 // Admin panel is development-only
 if (process.env.NODE_ENV === "production") {
@@ -17,8 +16,8 @@ const HOST = "127.0.0.1";
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "unigent-admin-2026";
 
 const clerk = createClerkClient({
-  secretKey: getClerkSecretKey(),
-  publishableKey: getClerkPublishableKey(),
+  secretKey: process.env.CLERK_SECRET_KEY!,
+  publishableKey: process.env.CLERK_PUBLISHABLE_KEY!,
 });
 
 type UserMeta = {

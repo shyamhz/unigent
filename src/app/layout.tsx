@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import Providers from "@/components/providers";
-import { getClerkPublishableKey } from "@/lib/clerk-env";
 import "./globals.css";
 import AgentationDev from "@/components/AgentationDev";
 
@@ -49,7 +48,7 @@ export default function RootLayout({
         />
       </head>
       <body className="font-sans antialiased">
-        <ClerkProvider publishableKey={getClerkPublishableKey()}>
+        <ClerkProvider>
           <Providers>
             {children}
             <AgentationDev />

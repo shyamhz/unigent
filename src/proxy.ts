@@ -1,12 +1,11 @@
 import { clerkMiddleware, createRouteMatcher, clerkClient } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { clerkMiddlewareKeys } from "@/lib/clerk-env";
 
 const isPublicRoute = createRouteMatcher([
   "/sign-in(.*)",
   "/sign-up(.*)",
   "/api/webhooks(.*)",
-  "/api/corsair/oauth/callback",
+  "/api/corsair(.*)",
   "/coming-soon",
 ]);
 
@@ -50,13 +49,7 @@ export const proxy = clerkMiddleware(async (auth, request) => {
         if (freshMeta.onboarded === true) {
           onboarded = true;
         }
-      } catch (error) {
-        // Log error in production for monitoring
-        console.error("[Clerk Auth] Failed to verify onboarded status:", {
-          userId,
-          error: error instanceof Error ? error.message : "Unknown error",
-          path: request.nextUrl.pathname,
-        });
+      } catch {
         // If we can't reach Clerk, fall through with stale JWT value
       }
     }
@@ -71,8 +64,6 @@ export const proxy = clerkMiddleware(async (auth, request) => {
   if (isLandingPage(request)) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
-}, {
-  publishableKey: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
 });
 
 export const config = {

@@ -9,8 +9,7 @@ export async function getGoogleOAuthUrl(plugin: 'gmail' | 'googlecalendar' = 'gm
     const { userId } = await auth();
     if (!userId) return { error: 'Not authenticated' };
 
-    const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/+$/, '');
-    const redirectUri = `${baseUrl}/api/corsair/oauth/callback`;
+    const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/corsair/oauth/callback`;
 
     const result = await generateOAuthUrl(corsair, plugin, {
       tenantId: userId,

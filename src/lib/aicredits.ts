@@ -4,3 +4,8 @@ export const aicredits = createOpenAI({
   baseURL: 'https://api.aicredits.in/v1',
   apiKey: process.env.AICREDITS_API_KEY!,
 });
+
+/** Chat Completions API — required for tool calling with aicredits-hosted models. */
+export function getAIModel(modelId: string) {
+  return aicredits.chat(modelId);
+}

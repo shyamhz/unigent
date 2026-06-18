@@ -174,10 +174,12 @@ export default function AICommandPanel() {
     setMessages((prev) => [...prev, assistantMsg]);
 
     try {
-      const allMessages = [...messages, userMsg].map((m) => ({
-        role: m.role,
-        content: m.content,
-      }));
+      const allMessages = [...messages, userMsg]
+        .filter((m) => (m.role === 'user' || m.role === 'assistant') && m.content.trim())
+        .map((m) => ({
+          role: m.role,
+          content: m.content,
+        }));
 
       abortRef.current = new AbortController();
       const res = await fetch('/api/chat', {
@@ -218,6 +220,10 @@ export default function AICommandPanel() {
           }
           return updated;
         });
+      }
+
+      if (!accumulated.trim()) {
+        throw new Error('The model returned an empty response. Please try again.');
       }
 
       getChatSessions().then(setSessions);
@@ -413,9 +419,14 @@ export default function AICommandPanel() {
                               : 'rounded-bl-sm bg-primary/8 text-foreground'
                           }`}
                         >
-                          {msg.content}
-                          {isStreaming && msg.id === messages[messages.length - 1]?.id && msg.role === 'assistant' && (
+                          {msg.content || (isStreaming && msg.id === messages[messages.length - 1]?.id ? (
+                            <span className="text-muted-foreground">Thinking…</span>
+                          ) : null)}
+                          {msg.content && isStreaming && msg.id === messages[messages.length - 1]?.id && msg.role === 'assistant' && (
                             <span className="ml-0.5 inline-block h-4 w-1.5 animate-pulse rounded-sm bg-primary/60 align-text-bottom" />
+                          )}
+                          {!msg.content && isStreaming && msg.id === messages[messages.length - 1]?.id && msg.role === 'assistant' && (
+                            <span className="ml-1 inline-block h-4 w-1.5 animate-pulse rounded-sm bg-primary/60 align-text-bottom" />
                           )}
                         </div>
                       )}

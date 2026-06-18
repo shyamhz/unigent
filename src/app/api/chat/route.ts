@@ -1,7 +1,7 @@
 import { streamText, stepCountIs, type Tool } from 'ai';
 import { auth } from '@clerk/nextjs/server';
 import { NextRequest } from 'next/server';
-import { aicredits } from '@/lib/aicredits';
+import { getAIModel } from '@/lib/aicredits';
 import { buildSystemPrompt } from '@/lib/ai/system-prompt';
 import { buildTools } from '@/lib/ai/tools';
 import { checkConnections } from '@/app/actions/connections';
@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
       try {
         const result = streamText({
-          model: aicredits(config.model),
+          model: getAIModel(config.model),
           system: systemPrompt,
           tools,
           stopWhen: stepCountIs(config.maxSteps),

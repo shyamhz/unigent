@@ -1,9 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
-import Providers from "@/components/providers";
+import Providers from "@/client/components/providers";
 import "./globals.css";
-import AgentationDev from "@/components/AgentationDev";
+import AgentationDev from "@/client/components/AgentationDev";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({

@@ -1,5 +1,5 @@
 import { managementHandler } from 'corsair';
-import { corsair } from '@/utils/corsair';
+import { corsair } from '@/server/services/corsair';
 import { NextRequest } from 'next/server';
 
 const handler = managementHandler(corsair, { basePath: '/api/corsair' });

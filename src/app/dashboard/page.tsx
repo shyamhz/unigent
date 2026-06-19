@@ -1,6 +1,6 @@
-import DashboardLayout from '@/components/dashboard/DashboardLayout';
-import { checkConnections } from '@/app/actions/connections';
-import { getConnectUrl } from '@/app/actions/corsair';
+import DashboardLayout from '@/client/components/dashboard/DashboardLayout';
+import { checkConnections } from '@/server/actions/connections';
+import { getConnectUrl } from '@/server/actions/corsair';
 
 export default async function Home() {
   const connectionStatus = await checkConnections();

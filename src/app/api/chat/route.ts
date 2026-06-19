@@ -1,18 +1,18 @@
 import { streamText, stepCountIs, type Tool } from 'ai';
 import { auth } from '@clerk/nextjs/server';
 import { NextRequest } from 'next/server';
-import { getAIModel } from '@/lib/aicredits';
-import { buildSystemPrompt } from '@/lib/ai/system-prompt';
-import { buildTools } from '@/lib/ai/tools';
-import { checkConnections } from '@/app/actions/connections';
-import { getAIConfig } from '@/lib/ai/config';
-import { isHostedAvailable, getHostedTools } from '@/lib/corsair-hosted';
+import { getAIModel } from '@/server/services/aicredits';
+import { buildSystemPrompt } from '@/server/ai/system-prompt';
+import { buildTools } from '@/server/ai/tools';
+import { checkConnections } from '@/server/actions/connections';
+import { getAIConfig } from '@/server/ai/config';
+import { isHostedAvailable, getHostedTools } from '@/server/services/corsair-hosted';
 import {
   getMessages,
   addMessage,
   createSession,
   generateSessionTitle,
-} from '@/lib/ai/memory';
+} from '@/server/ai/memory';
 
 const MAX_RETRIES = 2;
 

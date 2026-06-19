@@ -3,8 +3,8 @@
 import { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { useSession } from "@clerk/nextjs";
-import { getGoogleOAuthUrl } from "@/app/actions/oauth";
-import { SignOutLink } from "@/components/sign-out-link";
+import { getGoogleOAuthUrl } from "@/server/actions/oauth";
+import { SignOutLink } from "@/client/components/sign-out-link";
 
 type Step = "welcome" | "connect" | "connect-calendar" | "complete";
 type Status = "idle" | "loading" | "error";

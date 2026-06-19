@@ -1,7 +1,7 @@
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import { processOAuthCallback } from "corsair/oauth";
-import { corsair } from "@/utils/corsair";
+import { corsair } from "@/server/services/corsair";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -9,23 +9,25 @@ export async function GET(request: NextRequest) {
   const state = searchParams.get("state");
   const error = searchParams.get("error");
 
+  const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").replace(/\/+$/, "");
+
   if (error) {
     console.error("Google OAuth error:", error);
     return NextResponse.redirect(
-      new URL(`/onboarding?error=${encodeURIComponent(error)}`, request.url)
+      new URL(`/onboarding?error=${encodeURIComponent(error)}`, baseUrl)
     );
   }
 
   if (!code || !state) {
     return NextResponse.redirect(
-      new URL("/onboarding?error=missing_params", request.url)
+      new URL("/onboarding?error=missing_params", baseUrl)
     );
   }
 
   try {
     const { userId } = await auth();
     if (!userId) {
-      return NextResponse.redirect(new URL("/sign-in", request.url));
+      return NextResponse.redirect(new URL("/sign-in", baseUrl));
     }
 
     const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/corsair/oauth/callback`;
@@ -51,7 +53,7 @@ export async function GET(request: NextRequest) {
 
     const bothConnected = connections.gmail && connections.calendar;
 
-    await client.users.updateUser(userId, {
+    await client.users.updateUserMetadata(userId, {
       publicMetadata: {
         ...meta,
         onboarded: bothConnected,
@@ -61,17 +63,17 @@ export async function GET(request: NextRequest) {
 
     if (bothConnected) {
       return NextResponse.redirect(
-        new URL("/onboarding?connected=true", request.url)
+        new URL("/onboarding?connected=true", baseUrl)
       );
     }
 
     return NextResponse.redirect(
-      new URL("/onboarding?step=connect-calendar", request.url)
+      new URL("/onboarding?step=connect-calendar", baseUrl)
     );
   } catch (err) {
     console.error("OAuth callback error:", err);
     return NextResponse.redirect(
-      new URL("/onboarding?error=oauth_failed", request.url)
+      new URL("/onboarding?error=oauth_failed", baseUrl)
     );
   }
 }

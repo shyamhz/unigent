@@ -13,7 +13,7 @@ export async function POST() {
     const meta = (user.publicMetadata ?? {}) as Record<string, unknown>;
 
     // Only mark onboarded - don't set connections since user skipped
-    await client.users.updateUser(userId, {
+    await client.users.updateUserMetadata(userId, {
       publicMetadata: {
         ...meta,
         onboarded: true,

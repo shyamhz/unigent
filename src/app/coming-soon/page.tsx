@@ -1,6 +1,6 @@
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
-import { SignOutLink } from '@/components/sign-out-link';
+import { SignOutLink } from '@/client/components/sign-out-link';
 
 export const dynamic = 'force-dynamic';
 

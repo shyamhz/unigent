@@ -3,16 +3,16 @@ import { createServer, IncomingMessage, ServerResponse } from "node:http";
 import { createClerkClient } from "@clerk/backend";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { getAIConfig, setAIConfig } from "../server/ai/config";
-
-// Admin panel is development-only
-if (process.env.NODE_ENV === "production") {
-  console.error("\n  ✗ Admin panel is disabled in production.\n");
-  process.exit(1);
-}
+import { Pool } from "pg";
+import { eq } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/node-postgres";
+import * as schema from "../server/db/schema";
 
 const PORT = Number(process.env.ADMIN_PORT || 3001);
 const HOST = "127.0.0.1";
+
+const pool = new Pool({ connectionString: process.env.DATABASE_URL! });
+const db = drizzle(pool, { schema });
 
 const clerk = createClerkClient({
   secretKey: process.env.CLERK_SECRET_KEY!,
@@ -25,6 +25,30 @@ type UserMeta = {
   tier?: "free" | "pro";
   connections?: { gmail?: boolean; calendar?: boolean };
 };
+
+const DEFAULT_MODEL = "openai/gpt-4o-mini";
+
+async function getAIConfig(): Promise<{ model: string }> {
+  const [row] = await db
+    .select()
+    .from(schema.aiConfig)
+    .where(eq(schema.aiConfig.id, "default"))
+    .limit(1);
+
+  if (row) return { model: row.model };
+
+  await db.insert(schema.aiConfig).values({ id: "default", model: DEFAULT_MODEL });
+  return { model: DEFAULT_MODEL };
+}
+
+async function setAIConfig(model: string): Promise<{ model: string }> {
+  const current = await getAIConfig();
+  await db
+    .update(schema.aiConfig)
+    .set({ model, updatedAt: new Date() })
+    .where(eq(schema.aiConfig.id, "default"));
+  return { model };
+}
 
 async function parseBody(req: IncomingMessage): Promise<any> {
   return new Promise((resolve, reject) => {
@@ -77,7 +101,6 @@ async function handleGrant(_req: IncomingMessage, res: ServerResponse) {
       publicMetadata: { ...existing, access_allowed: true, tier: existing.tier || "free" },
     });
 
-    // Send email
     let emailSent = false;
     let emailError = "";
     try {
@@ -137,7 +160,7 @@ async function handleTier(_req: IncomingMessage, res: ServerResponse) {
 }
 
 async function handleGetAIConfig(_req: IncomingMessage, res: ServerResponse) {
-  const config = getAIConfig();
+  const config = await getAIConfig();
 
   let models: Array<{ id: string; name: string; is_free: boolean; context_length: number; provider: string }> = [];
   try {
@@ -161,15 +184,11 @@ async function handleGetAIConfig(_req: IncomingMessage, res: ServerResponse) {
 
 async function handleSetAIConfig(_req: IncomingMessage, res: ServerResponse) {
   const body = await parseBody(_req);
-  const { model, temperature, maxTokens, maxSteps } = body;
+  const { model } = body;
 
-  const updates: Record<string, unknown> = {};
-  if (model !== undefined) updates.model = model;
-  if (temperature !== undefined) updates.temperature = Number(temperature);
-  if (maxTokens !== undefined) updates.maxTokens = Number(maxTokens);
-  if (maxSteps !== undefined) updates.maxSteps = Number(maxSteps);
+  if (!model) return json(res, { ok: false, error: "Missing model" }, 400);
 
-  const config = setAIConfig(updates);
+  const config = await setAIConfig(model);
   return json(res, { ok: true, config });
 }
 

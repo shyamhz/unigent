@@ -41,7 +41,7 @@
     .ai-config { background: #131316; border: 1px solid rgba(255,255,255,0.10); border-radius: 14px; padding: 20px; margin-bottom: 32px; }
     .ai-config h2 { font-size: 14px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
     .ai-config h2 .icon { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; background: rgba(111,107,239,0.12); border-radius: 6px; }
-    .ai-config-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 16px; align-items: end; }
+    .ai-config-grid { display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: end; }
     .ai-config-grid .field { display: flex; flex-direction: column; gap: 6px; }
     .ai-config-grid label { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; color: #6E6E76; }
     .ai-config-grid select, .ai-config-grid input { width: 100%; background: #1C1C22; border: 1px solid rgba(255,255,255,0.10); border-radius: 8px; padding: 10px 12px; font-size: 14px; color: #F5F5F7; outline: none; }
@@ -114,15 +114,7 @@
             <select id="ai-model"></select>
           </div>
           <div class="field">
-            <label>Temperature</label>
-            <input type="number" id="ai-temperature" min="0" max="2" step="0.1" />
-          </div>
-          <div class="field">
-            <label>Max Tokens</label>
-            <input type="number" id="ai-max-tokens" min="256" max="32768" step="256" />
-          </div>
-          <div class="field">
-            <button class="btn btn-primary btn-save" onclick="saveAIConfig()">Save Config</button>
+            <button class="btn btn-primary btn-save" onclick="saveAIConfig()">Save Model</button>
           </div>
         </div>
       </div>
@@ -261,18 +253,14 @@
             options += '</optgroup>';
           });
           select.innerHTML = options;
-          document.getElementById('ai-temperature').value = data.config.temperature;
-          document.getElementById('ai-max-tokens').value = data.config.maxTokens;
         }
       } catch {}
     }
 
     async function saveAIConfig() {
       const model = document.getElementById('ai-model').value;
-      const temperature = parseFloat(document.getElementById('ai-temperature').value);
-      const maxTokens = parseInt(document.getElementById('ai-max-tokens').value);
-      const data = await api('/api/ai-config', 'POST', { model, temperature, maxTokens });
-      showMsg(data.ok ? 'AI config saved.' : 'Error: ' + (data.error || 'Unknown'));
+      const data = await api('/api/ai-config', 'POST', { model });
+      showMsg(data.ok ? 'Model updated.' : 'Error: ' + (data.error || 'Unknown'));
     }
 
     loadUsers();

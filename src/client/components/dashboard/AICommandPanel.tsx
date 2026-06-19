@@ -9,21 +9,24 @@ import {
   getChatSessions,
   getChatMessages,
   removeChatSession,
-  getAIConnections,
 } from '@/server/actions/chat';
 import type { ChatSession, ChatMessage } from '@/server/ai/memory';
-
-interface ConnectionStatus {
-  gmail: boolean;
-  googlecalendar: boolean;
-}
 
 interface DisplayMessage {
   id: string;
   role: 'user' | 'assistant' | 'tool';
   content: string;
-  toolCalls?: Array<{ toolName: string; args: unknown }>;
+  thinking?: string;
+  toolCalls?: Array<{ toolName: string; status: 'pending' | 'running' | 'done' }>;
   toolResult?: unknown;
+}
+
+interface StreamEvent {
+  type: 'thinking' | 'tool-start' | 'tool-end' | 'tool-call' | 'tool-result' | 'text' | 'error' | 'done';
+  text?: string;
+  toolName?: string;
+  args?: unknown;
+  error?: string;
 }
 
 let audioCtx: AudioContext | null = null;
@@ -74,60 +77,45 @@ function playErrorSound() {
   } catch {}
 }
 
-function filterReasoning(text: string): string {
-  // Strip common reasoning patterns that leak from model output
-  const patterns = [
-    /One (detail|thought|final check|more thing)[^.!?\n]*[.!?\n]/gi,
-    /I'?ll (proceed|create|add|use|execute|just|stick|set|confirm|mention|be|do|check|ignore|assume|formulate|list|verify)[^.!?\n]*[.!?\n]/gi,
-    /I (have|do|notice|see|know|will|should|must|can|would)[^.!?\n]*[.!?\n]/gi,
-    /Let me [^.!?\n]*[.!?\n]/gi,
-    /Wait[, ][^.!?\n]*[.!?\n]/gi,
-    /Actually[, ][^.!?\n]*[.!?\n]/gi,
-    /Ready[.!?\n]/gi,
-    /Let'?s go[.!?\n]/gi,
-    /Correct\.?\n/gi,
-    /Correct\.?\s*\n/gi,
-    /I'?m ready[^.!?\n]*[.!?\n]/gi,
-    /I'?ll (just|proceed|add|create|set|use|confirm|mention|be|do|check|ignore|assume|formulate|list|verify)[^.!?\n]*[.!?\n]/gi,
-    /\bI'?ll\b[^.!?]*[.!?]\s*/gi,
-    /\bI will\b[^.!?]*[.!?]\s*/gi,
-    /\bI should\b[^.!?]*[.!?]\s*/gi,
-    /\bI must\b[^.!?]*[.!?]\s*/gi,
-    /\bI would\b[^.!?]*[.!?]\s*/gi,
-    /\bI can\b[^.!?]*[.!?]\s*/gi,
-    /\bI have\b[^.!?]*[.!?]\s*/gi,
-    /\bI do\b[^.!?]*[.!?]\s*/gi,
-    /\bI notice\b[^.!?]*[.!?]\s*/gi,
-    /\bI see\b[^.!?]*[.!?]\s*/gi,
-    /\bI know\b[^.!?]*[.!?]\s*/gi,
-    /\bI think\b[^.!?]*[.!?]\s*/gi,
-    /\bI believe\b[^.!?]*[.!?]\s*/gi,
-    /\bI assume\b[^.!?]*[.!?]\s*/gi,
-    /\bI will proceed\b[^.!?]*[.!?]\s*/gi,
-    /\bI will create\b[^.!?]*[.!?]\s*/gi,
-    /\bI will add\b[^.!?]*[.!?]\s*/gi,
-    /\bI will use\b[^.!?]*[.!?]\s*/gi,
-    /\bI will set\b[^.!?]*[.!?]\s*/gi,
-    /\bI will confirm\b[^.!?]*[.!?]\s*/gi,
-    /\bI will mention\b[^.!?]*[.!?]\s*/gi,
-    /\bI will be\b[^.!?]*[.!?]\s*/gi,
-    /\bI will do\b[^.!?]*[.!?]\s*/gi,
-    /\bI will check\b[^.!?]*[.!?]\s*/gi,
-    /\bI will ignore\b[^.!?]*[.!?]\s*/gi,
-    /\bI will assume\b[^.!?]*[.!?]\s*/gi,
-    /\bI will formulate\b[^.!?]*[.!?]\s*/gi,
-    /\bI will list\b[^.!?]*[.!?]\s*/gi,
-    /\bI will verify\b[^.!?]*[.!?]\s*/gi,
-  ];
-
-  let filtered = text;
-  for (const pattern of patterns) {
-    filtered = filtered.replace(pattern, '');
+function extractThinkingTags(text: string): { thinking: string; response: string } {
+  const thinkingMatch = text.match(/<thinking>([\s\S]*?)<\/thinking>/);
+  if (thinkingMatch) {
+    const thinking = thinkingMatch[1].trim();
+    const response = text.replace(/<thinking>[\s\S]*?<\/thinking>/, '').trim();
+    return { thinking, response };
   }
+  return { thinking: '', response: text };
+}
 
-  // Clean up multiple newlines and leading/trailing whitespace
-  filtered = filtered.replace(/\n{3,}/g, '\n\n').trim();
-  return filtered;
+function formatToolName(toolName: string): string {
+  const names: Record<string, string> = {
+    list_emails: 'Listing emails',
+    search_emails: 'Searching emails',
+    read_email: 'Reading email',
+    send_email: 'Sending email',
+    create_draft: 'Creating draft',
+    send_draft: 'Sending draft',
+    delete_email: 'Deleting email',
+    delete_draft: 'Deleting draft',
+    get_important_emails: 'Getting important emails',
+    get_promotions: 'Getting promotions',
+    get_social_emails: 'Getting social emails',
+    get_updates: 'Getting updates',
+    get_sent_emails: 'Getting sent emails',
+    get_drafts: 'Getting drafts',
+    list_events: 'Listing events',
+    search_events: 'Searching events',
+    create_event: 'Creating event',
+    update_event: 'Updating event',
+    delete_event: 'Deleting event',
+  };
+  return names[toolName] || toolName.replace(/_/g, ' ');
+}
+
+function getToolIcon(toolName: string): string {
+  if (toolName.includes('email') || toolName.includes('draft') || toolName.includes('send')) return '✉️';
+  if (toolName.includes('event') || toolName.includes('calendar')) return '📅';
+  return '⚡';
 }
 
 export default function AICommandPanel() {
@@ -138,7 +126,7 @@ export default function AICommandPanel() {
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
-  const [connections, setConnections] = useState<ConnectionStatus>({ gmail: false, googlecalendar: false });
+  const [expandedThinking, setExpandedThinking] = useState<Record<string, boolean>>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -151,9 +139,7 @@ export default function AICommandPanel() {
     scrollToBottom();
   }, [messages, scrollToBottom]);
 
-  // Load connections and session list on mount — but do NOT auto-load any session
   useEffect(() => {
-    getAIConnections().then(setConnections);
     getChatSessions().then(setSessions);
   }, []);
 
@@ -164,7 +150,8 @@ export default function AICommandPanel() {
       id: m.id,
       role: m.role,
       content: m.content ?? '',
-      toolCalls: m.toolCalls as Array<{ toolName: string; args: unknown }> | undefined,
+      thinking: undefined,
+      toolCalls: m.toolCalls as Array<{ toolName: string; status: 'pending' | 'running' | 'done' }> | undefined,
       toolResult: m.toolResult as unknown,
     })));
   }, []);
@@ -183,6 +170,17 @@ export default function AICommandPanel() {
       setMessages([]);
     }
   }, [activeSessionId]);
+
+  const toggleThinking = useCallback((msgId: string) => {
+    setExpandedThinking((prev) => ({ ...prev, [msgId]: !prev[msgId] }));
+  }, []);
+
+  const abortStream = useCallback(() => {
+    if (abortRef.current) {
+      abortRef.current.abort();
+      abortRef.current = null;
+    }
+  }, []);
 
   const sendMessage = useCallback(async () => {
     if (!input.trim() || isStreaming) return;
@@ -208,6 +206,8 @@ export default function AICommandPanel() {
       id: `stream-${Date.now()}`,
       role: 'assistant',
       content: '',
+      thinking: '',
+      toolCalls: [],
     };
     setMessages((prev) => [...prev, assistantMsg]);
 
@@ -241,41 +241,112 @@ export default function AICommandPanel() {
       if (!reader) throw new Error('No reader');
 
       const decoder = new TextDecoder();
-      let accumulated = '';
+      let buffer = '';
+      let accumulatedText = '';
+      let accumulatedThinking = '';
+      const toolCalls: Array<{ toolName: string; status: 'pending' | 'running' | 'done' }> = [];
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
         const chunk = decoder.decode(value, { stream: true });
-        accumulated += chunk;
-        const filtered = filterReasoning(accumulated);
-        setMessages((prev) => {
-          const updated = [...prev];
-          const last = updated[updated.length - 1];
-          if (last.role === 'assistant') {
-            updated[updated.length - 1] = { ...last, content: filtered || accumulated };
+        buffer += chunk;
+
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (!line.startsWith('e:')) continue;
+
+          try {
+            const event: StreamEvent = JSON.parse(line.slice(2));
+
+            switch (event.type) {
+              case 'thinking':
+                accumulatedThinking += event.text || '';
+                setMessages((prev) => {
+                  const updated = [...prev];
+                  const last = updated[updated.length - 1];
+                  if (last.role === 'assistant') {
+                    updated[updated.length - 1] = { ...last, thinking: accumulatedThinking };
+                  }
+                  return updated;
+                });
+                break;
+
+              case 'tool-start':
+                toolCalls.push({ toolName: event.toolName || '', status: 'running' });
+                setMessages((prev) => {
+                  const updated = [...prev];
+                  const last = updated[updated.length - 1];
+                  if (last.role === 'assistant') {
+                    updated[updated.length - 1] = { ...last, toolCalls: [...toolCalls] };
+                  }
+                  return updated;
+                });
+                break;
+
+              case 'tool-end':
+                const runningTool = toolCalls.findLast((t) => t.status === 'running');
+                if (runningTool) runningTool.status = 'done';
+                setMessages((prev) => {
+                  const updated = [...prev];
+                  const last = updated[updated.length - 1];
+                  if (last.role === 'assistant') {
+                    updated[updated.length - 1] = { ...last, toolCalls: [...toolCalls] };
+                  }
+                  return updated;
+                });
+                break;
+
+              case 'tool-call':
+                const existingTool = toolCalls.findLast((t) => t.toolName === event.toolName && t.status === 'running');
+                if (existingTool) {
+                  existingTool.toolName = event.toolName || '';
+                }
+                break;
+
+              case 'tool-result':
+                break;
+
+              case 'text':
+                accumulatedText += event.text || '';
+                setMessages((prev) => {
+                  const updated = [...prev];
+                  const last = updated[updated.length - 1];
+                  if (last.role === 'assistant') {
+                    updated[updated.length - 1] = { ...last, content: accumulatedText };
+                  }
+                  return updated;
+                });
+                break;
+
+              case 'error':
+                throw new Error(event.error || 'Stream error');
+
+              case 'done':
+                break;
+            }
+          } catch (e) {
+            if ((e as Error).name === 'SyntaxError') continue;
+            throw e;
           }
-          return updated;
-        });
+        }
       }
 
-      if (!accumulated.trim()) {
+      if (!accumulatedText.trim() && !accumulatedThinking.trim()) {
         throw new Error('The model returned an empty response. Please try again.');
       }
 
-      // Apply final filter to ensure clean output
-      const finalFiltered = filterReasoning(accumulated);
-      if (finalFiltered && finalFiltered !== accumulated) {
-        setMessages((prev) => {
-          const updated = [...prev];
-          const last = updated[updated.length - 1];
-          if (last.role === 'assistant') {
-            updated[updated.length - 1] = { ...last, content: finalFiltered };
-          }
-          return updated;
-        });
-      }
+      setMessages((prev) => {
+        const updated = [...prev];
+        const last = updated[updated.length - 1];
+        if (last.role === 'assistant') {
+          updated[updated.length - 1] = { ...last, content: accumulatedText, thinking: accumulatedThinking };
+        }
+        return updated;
+      });
 
       getChatSessions().then(setSessions);
       playNotificationSound();
@@ -319,9 +390,6 @@ export default function AICommandPanel() {
     }
   }, [sendMessage]);
 
-  const connectedCount = Object.values(connections).filter(Boolean).length;
-  const totalCount = Object.keys(connections).length;
-
   const quickActions = [
     { label: 'Summarize inbox', prompt: 'Summarize my most important unread emails' },
     { label: 'Check calendar', prompt: 'What meetings do I have today?' },
@@ -334,6 +402,77 @@ export default function AICommandPanel() {
     setInput(prompt);
     inputRef.current?.focus();
   }, [isStreaming]);
+
+  const renderThinkingBlock = (msg: DisplayMessage) => {
+    if (!msg.thinking || !msg.thinking.trim()) return null;
+
+    const isExpanded = expandedThinking[msg.id] ?? false;
+    const preview = msg.thinking.split('\n').slice(0, 2).join(' ');
+
+    return (
+      <div className="mb-3">
+        <button
+          onClick={() => toggleThinking(msg.id)}
+          className="flex items-center gap-2 text-[0.7rem] text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+        >
+          <svg
+            width="10"
+            height="10"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            className={`transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+          >
+            <path d="M9 18l6-6-6-6" />
+          </svg>
+          <span className="font-medium">Thinking...</span>
+          {!isExpanded && (
+            <span className="max-w-[200px] truncate opacity-50">{preview}</span>
+          )}
+        </button>
+        {isExpanded && (
+          <div className="mt-2 rounded-lg border border-border/20 bg-secondary/20 px-3 py-2 text-[0.72rem] leading-relaxed text-muted-foreground/70 font-mono whitespace-pre-wrap max-h-32 overflow-y-auto">
+            {msg.thinking}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderToolActivity = (msg: DisplayMessage) => {
+    if (!msg.toolCalls || msg.toolCalls.length === 0) return null;
+
+    return (
+      <div className="mb-3 flex flex-wrap gap-1.5">
+        {msg.toolCalls.map((tc, i) => (
+          <div
+            key={i}
+            className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[0.68rem] transition-colors ${
+              tc.status === 'running'
+                ? 'bg-primary/15 text-primary animate-pulse'
+                : tc.status === 'done'
+                ? 'bg-emerald-500/10 text-emerald-600'
+                : 'bg-secondary/50 text-muted-foreground'
+            }`}
+          >
+            <span>{getToolIcon(tc.toolName)}</span>
+            <span>{formatToolName(tc.toolName)}</span>
+            {tc.status === 'running' && (
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="animate-spin">
+                <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+              </svg>
+            )}
+            {tc.status === 'done' && (
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M20 6L9 17l-5-5" />
+              </svg>
+            )}
+          </div>
+        ))}
+      </div>
+    );
+  };
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
@@ -351,11 +490,6 @@ export default function AICommandPanel() {
           <span className="text-sm font-medium text-foreground">Unigent</span>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 text-[0.65rem]">
-            <span className={`h-1.5 w-1.5 rounded-full ${connectedCount > 0 ? 'bg-emerald-400' : 'bg-amber-400'}`} />
-            <span className="text-muted-foreground">{connectedCount}/{totalCount} connected</span>
-          </div>
-          {/* History icon */}
           <button
             onClick={() => setShowSidebar(!showSidebar)}
             className={`flex h-7 w-7 items-center justify-center rounded-lg transition-colors ${
@@ -453,11 +587,6 @@ export default function AICommandPanel() {
                 <h3 className="mb-1 text-sm font-medium text-foreground">How can I help?</h3>
                 <p className="max-w-[240px] text-[0.72rem] text-muted-foreground">
                   I can manage your emails, schedule events, and more.
-                  {connectedCount < totalCount && (
-                    <span className="mt-1 block text-amber-400/70">
-                      Connect {totalCount - connectedCount} more integration{totalCount - connectedCount > 1 ? 's' : ''} for full access.
-                    </span>
-                  )}
                 </p>
               </div>
             ) : (
@@ -486,6 +615,8 @@ export default function AICommandPanel() {
                         </div>
                       ) : (
                         <div className="inline-block rounded-2xl rounded-bl-sm bg-primary/8 px-4 py-2.5 text-[0.82rem] leading-relaxed text-foreground">
+                          {msg.thinking && renderThinkingBlock(msg)}
+                          {msg.toolCalls && msg.toolCalls.length > 0 && renderToolActivity(msg)}
                           {msg.content ? (
                             <ReactMarkdown
                               components={{
@@ -530,7 +661,7 @@ export default function AICommandPanel() {
                               {msg.content}
                             </ReactMarkdown>
                           ) : isStreaming && msg.id === messages[messages.length - 1]?.id ? (
-                            <span className="text-muted-foreground">Thinking…</span>
+                            <span className="text-muted-foreground">Thinking...</span>
                           ) : null}
                           {msg.content && isStreaming && msg.id === messages[messages.length - 1]?.id && msg.role === 'assistant' && (
                             <span className="ml-0.5 inline-block h-4 w-1.5 animate-pulse rounded-sm bg-primary/60 align-text-bottom" />
@@ -580,21 +711,27 @@ export default function AICommandPanel() {
                   </kbd>
                 </div>
               </div>
-              <button
-                onClick={sendMessage}
-                disabled={!input.trim() || isStreaming}
-                className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:hover:scale-100"
-              >
-                {isStreaming ? (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="animate-spin">
-                    <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+              {isStreaming ? (
+                <button
+                  onClick={abortStream}
+                  className="flex h-11 w-11 items-center justify-center rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                  title="Stop generating"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <rect x="6" y="6" width="12" height="12" rx="2" />
                   </svg>
-                ) : (
+                </button>
+              ) : (
+                <button
+                  onClick={sendMessage}
+                  disabled={!input.trim()}
+                  className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:hover:scale-100"
+                >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
                   </svg>
-                )}
-              </button>
+                </button>
+              )}
             </div>
           </div>
         </div>

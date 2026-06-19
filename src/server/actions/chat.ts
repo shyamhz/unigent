@@ -11,7 +11,6 @@ import {
   type ChatSession,
   type ChatMessage,
 } from '@/server/ai/memory';
-import { checkConnections } from './connections';
 
 async function getUserId(): Promise<string> {
   const { userId } = await auth();
@@ -57,9 +56,4 @@ export async function saveChatMessage(
   const session = await getSession(sessionId, userId);
   if (!session) throw new Error('Session not found');
   return addMessage(sessionId, role, content, toolCalls, toolResult);
-}
-
-export async function getAIConnections() {
-  await getUserId();
-  return checkConnections();
 }

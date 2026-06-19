@@ -6,6 +6,7 @@ export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant' | 'tool';
   content: string | null;
+  thinking?: string | null;
   toolCalls?: unknown;
   toolResult?: unknown;
   createdAt: Date;

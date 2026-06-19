@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { useInView } from '@/hooks/use-in-view'
+import { useInView } from '@/client/hooks/use-in-view'
 import { Zap, CheckCircle2, Clock, ArrowRight, Mail, Calendar, MessageSquare, Star, AlertCircle } from 'lucide-react'
 
 /* ─────────────────────────────────────────────

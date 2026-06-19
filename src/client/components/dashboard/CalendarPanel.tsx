@@ -3,19 +3,19 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { useUser } from '@clerk/nextjs';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { CustomSelect } from '@/components/ui/custom-select';
+import { Badge } from '@/client/components/ui/badge';
+import { Input } from '@/client/components/ui/input';
+import { CustomSelect } from '@/client/components/ui/custom-select';
 import {
   getEvents,
   createCalendarEvent,
   updateCalendarEvent,
   deleteCalendarEvent,
-} from '@/app/actions/calendar';
+} from '@/server/actions/calendar';
 
-import type { CalendarEvent, CreateEventParams, UpdateEventParams } from '@/utils/api/googlecalendar/types';
-import { formatEventTime, getEventColor, getDaysWithEvents } from '@/utils/api/googlecalendar/utils';
-import { playCreateSound, playUpdateSound, playDeleteSound, playErrorSound } from '@/utils/sounds';
+import type { CalendarEvent, CreateEventParams, UpdateEventParams } from '@/server/services/googlecalendar/types';
+import { formatEventTime, getEventColor, getDaysWithEvents } from '@/server/services/googlecalendar/utils';
+import { playCreateSound, playUpdateSound, playDeleteSound, playErrorSound } from '@/client/utils/sounds';
 import { ConnectButton } from './ConnectButton';
 
 const WEEKDAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];

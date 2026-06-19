@@ -3,9 +3,9 @@
 import { useState, useEffect, useCallback, type ReactNode } from 'react';
 import toast from 'react-hot-toast';
 import { useUser } from '@clerk/nextjs';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/client/components/ui/badge';
+import { Input } from '@/client/components/ui/input';
+import { Avatar, AvatarFallback } from '@/client/components/ui/avatar';
 import {
   getEmails,
   searchEmails,
@@ -20,11 +20,11 @@ import {
   deleteDraft,
   createDraft,
   sendEmail,
-} from '@/app/actions/gmail';
+} from '@/server/actions/gmail';
 
-import type { EmailPreview } from '@/utils/api/gmail/types';
-import EmailBodyIframe from '@/components/email-body-iframe';
-import { playSendSound, playErrorSound, playPopSound, playDeleteSound } from '@/utils/sounds';
+import type { EmailPreview } from '@/server/services/gmail/types';
+import EmailBodyIframe from '@/client/components/email-body-iframe';
+import { playSendSound, playErrorSound, playPopSound, playDeleteSound } from '@/client/utils/sounds';
 import { ConnectButton } from './ConnectButton';
 
 type MailTab = 'inbox' | 'important' | 'promotions' | 'updates' | 'social' | 'sent' | 'drafts' | 'compose';

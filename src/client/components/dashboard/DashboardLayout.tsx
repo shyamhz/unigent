@@ -1,10 +1,10 @@
 'use client';
 
-import { Card } from '@/components/ui/card';
-import TopBar from '@/components/dashboard/TopBar';
-import GmailPanel from '@/components/dashboard/GmailPanel';
-import AICommandPanel from '@/components/dashboard/AICommandPanel';
-import CalendarPanel from '@/components/dashboard/CalendarPanel';
+import { Card } from '@/client/components/ui/card';
+import TopBar from '@/client/components/dashboard/TopBar';
+import GmailPanel from '@/client/components/dashboard/GmailPanel';
+import AICommandPanel from '@/client/components/dashboard/AICommandPanel';
+import CalendarPanel from '@/client/components/dashboard/CalendarPanel';
 import { useRef, useState, useCallback, useEffect } from 'react';
 
 type Panel = 'gmail' | 'ai' | 'calendar';

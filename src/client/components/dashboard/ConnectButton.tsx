@@ -1,6 +1,6 @@
 'use client';
 
-import { getGoogleOAuthUrl } from '@/app/actions/oauth';
+import { getGoogleOAuthUrl } from '@/server/actions/oauth';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 

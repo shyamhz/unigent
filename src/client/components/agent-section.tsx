@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useInView } from '@/hooks/use-in-view'
+import { useInView } from '@/client/hooks/use-in-view'
 import {
   Sparkles, Mail, Calendar, Brain, Route, CheckCircle2,
   Clock3, Send, type LucideIcon,

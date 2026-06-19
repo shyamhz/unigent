@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { useInView } from '@/hooks/use-in-view'
+import { useInView } from '@/client/hooks/use-in-view'
 import {
   Mail, Calendar, Sparkles, CheckCircle2, Clock3,
   FileText, CalendarPlus, Reply, AlertCircle, Tag,

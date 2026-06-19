@@ -2,15 +2,15 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useUser } from '@clerk/nextjs';
-import { Input } from '@/components/ui/input';
+import { Input } from '@/client/components/ui/input';
 import {
   createChatSession,
   getChatSessions,
   getChatMessages,
   removeChatSession,
   getAIConnections,
-} from '@/app/actions/chat';
-import type { ChatSession, ChatMessage } from '@/lib/ai/memory';
+} from '@/server/actions/chat';
+import type { ChatSession, ChatMessage } from '@/server/ai/memory';
 
 interface ConnectionStatus {
   gmail: boolean;

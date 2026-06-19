@@ -13,6 +13,8 @@ export async function getConnectUrl(): Promise<string | null> {
   if (!userId) return null;
 
   const tenantId = await getOrCreateTenant(userId);
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/+$/, '');
+  const redirectUri = `${appUrl}/api/corsair/oauth/callback`;
 
   const res = await fetch(
     `https://api.corsair.dev/instances/${INSTANCE_ID}/tenants/${tenantId}/connect-link`,
@@ -22,7 +24,10 @@ export async function getConnectUrl(): Promise<string | null> {
         Authorization: `Bearer ${DEV_KEY}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ plugins: ['gmail', 'googlecalendar'] }),
+      body: JSON.stringify({
+        plugins: ['gmail', 'googlecalendar'],
+        redirect_uri: redirectUri,
+      }),
     },
   );
 

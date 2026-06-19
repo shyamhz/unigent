@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { useSession } from "@clerk/nextjs";
-import { getGoogleOAuthUrl } from "@/server/actions/oauth";
+import { getConnectUrl } from "@/server/actions/corsair";
 import { SignOutLink } from "@/client/components/sign-out-link";
 
 type Step = "welcome" | "connect" | "connect-calendar" | "complete";
@@ -66,9 +66,9 @@ function OnboardingContent() {
     setError("");
 
     try {
-      const result = await getGoogleOAuthUrl("gmail");
-      if (result.error) throw new Error(result.error);
-      if (result.url) window.location.href = result.url;
+      const url = await getConnectUrl();
+      if (!url) throw new Error("Failed to generate connect URL");
+      window.location.href = url;
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to connect. Please try again."
@@ -83,9 +83,9 @@ function OnboardingContent() {
     setError("");
 
     try {
-      const result = await getGoogleOAuthUrl("googlecalendar");
-      if (result.error) throw new Error(result.error);
-      if (result.url) window.location.href = result.url;
+      const url = await getConnectUrl();
+      if (!url) throw new Error("Failed to generate connect URL");
+      window.location.href = url;
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to connect. Please try again."

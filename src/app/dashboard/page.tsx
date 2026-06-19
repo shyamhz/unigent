@@ -1,17 +1,13 @@
 import DashboardLayout from '@/client/components/dashboard/DashboardLayout';
-import { checkConnections } from '@/server/actions/connections';
 import { getConnectUrl } from '@/server/actions/corsair';
+import { isHostedAvailable } from '@/server/services/corsair-hosted';
 
 export default async function Home() {
-  const connectionStatus = await checkConnections();
-  const connectUrl = await getConnectUrl();
-
-  const needsConnection = !connectionStatus.gmail || !connectionStatus.googlecalendar;
+  const connectUrl = isHostedAvailable() ? await getConnectUrl() : null;
 
   return (
     <DashboardLayout
-      connectionStatus={connectionStatus}
-      connectUrl={needsConnection ? connectUrl : null}
+      connectUrl={connectUrl}
     />
   );
 }

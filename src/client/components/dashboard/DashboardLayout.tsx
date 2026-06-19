@@ -11,17 +11,11 @@ type Panel = 'gmail' | 'ai' | 'calendar';
 
 const PANEL_RATIOS = { gmail: 0.25, ai: 0.40, calendar: 0.35 };
 
-interface ConnectionStatus {
-  gmail: boolean;
-  googlecalendar: boolean;
-}
-
 interface DashboardLayoutProps {
-  connectionStatus: ConnectionStatus;
   connectUrl?: string | null;
 }
 
-export default function DashboardLayout({ connectionStatus, connectUrl }: DashboardLayoutProps) {
+export default function DashboardLayout({ connectUrl }: DashboardLayoutProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [activePanel, setActivePanel] = useState<Panel>('gmail');
   const [isMobile, setIsMobile] = useState(false);
@@ -125,9 +119,9 @@ export default function DashboardLayout({ connectionStatus, connectUrl }: Dashbo
             ))}
           </div>
           <Card className="h-full min-h-0 overflow-hidden rounded-lg">
-            {activePanel === 'gmail' && <GmailPanel isConnected={connectionStatus.gmail} />}
+            {activePanel === 'gmail' && <GmailPanel />}
             {activePanel === 'ai' && <AICommandPanel />}
-            {activePanel === 'calendar' && <CalendarPanel isConnected={connectionStatus.googlecalendar} />}
+            {activePanel === 'calendar' && <CalendarPanel />}
           </Card>
         </div>
       </div>
@@ -140,13 +134,13 @@ export default function DashboardLayout({ connectionStatus, connectUrl }: Dashbo
         <TopBar />
         <div className="flex min-h-0 flex-1 gap-3 p-3">
           <Card className="h-full min-w-0 flex-[0_0_30%] overflow-hidden rounded-lg">
-            <GmailPanel isConnected={connectionStatus.gmail} />
+            <GmailPanel />
           </Card>
           <Card className="h-full min-w-0 flex-[0_0_35%] overflow-hidden rounded-lg">
             <AICommandPanel />
           </Card>
           <Card className="h-full min-w-0 flex-[0_0_35%] overflow-hidden rounded-lg">
-            <CalendarPanel isConnected={connectionStatus.googlecalendar} />
+            <CalendarPanel />
           </Card>
         </div>
       </div>
@@ -224,7 +218,7 @@ export default function DashboardLayout({ connectionStatus, connectUrl }: Dashbo
         )}
 
         <Card className="h-full min-w-0 overflow-hidden rounded-lg" style={{ width: widths.gmail }}>
-          <GmailPanel isConnected={connectionStatus.gmail} />
+          <GmailPanel />
         </Card>
 
         <div
@@ -239,7 +233,7 @@ export default function DashboardLayout({ connectionStatus, connectUrl }: Dashbo
         </Card>
 
         <Card className="h-full min-w-0 overflow-hidden rounded-lg" style={{ width: widths.calendar }}>
-          <CalendarPanel isConnected={connectionStatus.googlecalendar} />
+          <CalendarPanel />
         </Card>
       </div>
     </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { getGoogleOAuthUrl } from '@/server/actions/oauth';
+import { getConnectUrl } from '@/server/actions/corsair';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 
@@ -18,9 +18,9 @@ export function ConnectButton({ type, isConnected, onError }: ConnectButtonProps
   const handleConnect = async () => {
     setLoading(true);
     try {
-      const result = await getGoogleOAuthUrl(type === 'gmail' ? 'gmail' : 'googlecalendar');
-      if (result.error) throw new Error(result.error);
-      if (result.url) window.location.href = result.url;
+      const url = await getConnectUrl();
+      if (!url) throw new Error('Failed to generate connect URL');
+      window.location.href = url;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to connect';
       toast.error(message);

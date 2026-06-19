@@ -107,10 +107,10 @@ const selectClass =
 const labelClass = 'text-[0.65rem] text-muted-foreground/60 mb-1 block';
 
 interface CalendarPanelProps {
-  isConnected: boolean;
+  isConnected?: boolean;
 }
 
-export default function CalendarPanel({ isConnected }: CalendarPanelProps) {
+export default function CalendarPanel({ isConnected = true }: CalendarPanelProps) {
   const { user } = useUser();
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(false);
@@ -207,12 +207,12 @@ export default function CalendarPanel({ isConnected }: CalendarPanelProps) {
       location: event.location ?? '',
       start: event.allDay ? event.start.slice(0, 10) : event.start.slice(0, 16),
       end: event.allDay ? event.end.slice(0, 10) : event.end.slice(0, 16),
-      allDay: event.allDay,
-      attendees: event.attendees?.map((a) => a.email) ?? [],
+      allDay: event.allDay ?? false,
+      attendees: event.attendees ?? [],
       colorId: event.colorId ?? '',
       visibility: event.visibility ?? 'default',
       transparency: event.transparency ?? 'opaque',
-      reminders: event.reminders?.overrides?.map((r) => ({ method: r.method, minutes: r.minutes })) ?? [],
+      reminders: (event.reminders ?? []) as ReminderDraft[],
     });
   };
 
@@ -337,14 +337,27 @@ export default function CalendarPanel({ isConnected }: CalendarPanelProps) {
             <span className="text-muted-foreground">{loading ? 'Syncing' : 'Synced'}</span>
           </div>
           {isConnected && (
-            <button
-              onClick={openCreateModal}
-              className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M12 5v14M5 12h14" />
-              </svg>
-            </button>
+            <>
+              <button
+                onClick={() => fetchMonthEvents(currentYear, currentMonth)}
+                disabled={loading}
+                className="flex h-7 w-7 items-center justify-center rounded-lg bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors disabled:opacity-50"
+                title="Refresh events"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={loading ? 'animate-spin' : ''}>
+                  <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                  <path d="M21 3v6h-6" />
+                </svg>
+              </button>
+              <button
+                onClick={openCreateModal}
+                className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -403,7 +416,7 @@ export default function CalendarPanel({ isConnected }: CalendarPanelProps) {
               const date = new Date(currentYear, currentMonth, item.day);
               const today = isToday(date);
               const selected = selectedDate && isSameDay(date, selectedDate);
-              const hasEvent = daysWithEvents.includes(item.day);
+              const hasEvent = daysWithEvents.has(item.day);
 
               return (
                 <button
@@ -472,13 +485,13 @@ export default function CalendarPanel({ isConnected }: CalendarPanelProps) {
                     key={event.id}
                     className="group flex items-center gap-3 px-3 py-2.5 transition-colors hover:bg-secondary/50 border-b border-border/20 last:border-0"
                   >
-                    <div className={`h-2 w-2 rounded-full ${getEventColor(event)} shrink-0`} />
+                    <div className={`h-2 w-2 rounded-full ${getEventColor(event.colorId)} shrink-0`} />
                     <div className="min-w-0 flex-1">
                       <div className="text-[0.78rem] font-medium text-foreground/90 group-hover:text-foreground truncate">
                         {event.summary}
                       </div>
                       <div className="text-[0.68rem] text-muted-foreground/60">
-                        {formatEventTime(event)}
+                        {formatEventTime(event.start, event.end, event.allDay)}
                       </div>
                     </div>
                     {event.hangoutLink && (

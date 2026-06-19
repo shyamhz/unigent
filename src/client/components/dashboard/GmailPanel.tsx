@@ -175,10 +175,10 @@ const priorityConfig: Record<string, { label: string; className: string }> = {
 };
 
 interface GmailPanelProps {
-  isConnected: boolean;
+  isConnected?: boolean;
 }
 
-export default function GmailPanel({ isConnected }: GmailPanelProps) {
+export default function GmailPanel({ isConnected = true }: GmailPanelProps) {
   const { user } = useUser();
   const [activeTab, setActiveTab] = useState<MailTab>('inbox');
   const [inboxSubFilter, setInboxSubFilter] = useState<InboxSubFilter>('all');

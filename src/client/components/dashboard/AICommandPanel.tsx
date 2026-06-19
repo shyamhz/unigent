@@ -74,6 +74,62 @@ function playErrorSound() {
   } catch {}
 }
 
+function filterReasoning(text: string): string {
+  // Strip common reasoning patterns that leak from model output
+  const patterns = [
+    /One (detail|thought|final check|more thing)[^.!?\n]*[.!?\n]/gi,
+    /I'?ll (proceed|create|add|use|execute|just|stick|set|confirm|mention|be|do|check|ignore|assume|formulate|list|verify)[^.!?\n]*[.!?\n]/gi,
+    /I (have|do|notice|see|know|will|should|must|can|would)[^.!?\n]*[.!?\n]/gi,
+    /Let me [^.!?\n]*[.!?\n]/gi,
+    /Wait[, ][^.!?\n]*[.!?\n]/gi,
+    /Actually[, ][^.!?\n]*[.!?\n]/gi,
+    /Ready[.!?\n]/gi,
+    /Let'?s go[.!?\n]/gi,
+    /Correct\.?\n/gi,
+    /Correct\.?\s*\n/gi,
+    /I'?m ready[^.!?\n]*[.!?\n]/gi,
+    /I'?ll (just|proceed|add|create|set|use|confirm|mention|be|do|check|ignore|assume|formulate|list|verify)[^.!?\n]*[.!?\n]/gi,
+    /\bI'?ll\b[^.!?]*[.!?]\s*/gi,
+    /\bI will\b[^.!?]*[.!?]\s*/gi,
+    /\bI should\b[^.!?]*[.!?]\s*/gi,
+    /\bI must\b[^.!?]*[.!?]\s*/gi,
+    /\bI would\b[^.!?]*[.!?]\s*/gi,
+    /\bI can\b[^.!?]*[.!?]\s*/gi,
+    /\bI have\b[^.!?]*[.!?]\s*/gi,
+    /\bI do\b[^.!?]*[.!?]\s*/gi,
+    /\bI notice\b[^.!?]*[.!?]\s*/gi,
+    /\bI see\b[^.!?]*[.!?]\s*/gi,
+    /\bI know\b[^.!?]*[.!?]\s*/gi,
+    /\bI think\b[^.!?]*[.!?]\s*/gi,
+    /\bI believe\b[^.!?]*[.!?]\s*/gi,
+    /\bI assume\b[^.!?]*[.!?]\s*/gi,
+    /\bI will proceed\b[^.!?]*[.!?]\s*/gi,
+    /\bI will create\b[^.!?]*[.!?]\s*/gi,
+    /\bI will add\b[^.!?]*[.!?]\s*/gi,
+    /\bI will use\b[^.!?]*[.!?]\s*/gi,
+    /\bI will set\b[^.!?]*[.!?]\s*/gi,
+    /\bI will confirm\b[^.!?]*[.!?]\s*/gi,
+    /\bI will mention\b[^.!?]*[.!?]\s*/gi,
+    /\bI will be\b[^.!?]*[.!?]\s*/gi,
+    /\bI will do\b[^.!?]*[.!?]\s*/gi,
+    /\bI will check\b[^.!?]*[.!?]\s*/gi,
+    /\bI will ignore\b[^.!?]*[.!?]\s*/gi,
+    /\bI will assume\b[^.!?]*[.!?]\s*/gi,
+    /\bI will formulate\b[^.!?]*[.!?]\s*/gi,
+    /\bI will list\b[^.!?]*[.!?]\s*/gi,
+    /\bI will verify\b[^.!?]*[.!?]\s*/gi,
+  ];
+
+  let filtered = text;
+  for (const pattern of patterns) {
+    filtered = filtered.replace(pattern, '');
+  }
+
+  // Clean up multiple newlines and leading/trailing whitespace
+  filtered = filtered.replace(/\n{3,}/g, '\n\n').trim();
+  return filtered;
+}
+
 export default function AICommandPanel() {
   const { user } = useUser();
   const [sessions, setSessions] = useState<ChatSession[]>([]);
@@ -193,11 +249,12 @@ export default function AICommandPanel() {
 
         const chunk = decoder.decode(value, { stream: true });
         accumulated += chunk;
+        const filtered = filterReasoning(accumulated);
         setMessages((prev) => {
           const updated = [...prev];
           const last = updated[updated.length - 1];
           if (last.role === 'assistant') {
-            updated[updated.length - 1] = { ...last, content: accumulated };
+            updated[updated.length - 1] = { ...last, content: filtered || accumulated };
           }
           return updated;
         });
@@ -205,6 +262,19 @@ export default function AICommandPanel() {
 
       if (!accumulated.trim()) {
         throw new Error('The model returned an empty response. Please try again.');
+      }
+
+      // Apply final filter to ensure clean output
+      const finalFiltered = filterReasoning(accumulated);
+      if (finalFiltered && finalFiltered !== accumulated) {
+        setMessages((prev) => {
+          const updated = [...prev];
+          const last = updated[updated.length - 1];
+          if (last.role === 'assistant') {
+            updated[updated.length - 1] = { ...last, content: finalFiltered };
+          }
+          return updated;
+        });
       }
 
       getChatSessions().then(setSessions);

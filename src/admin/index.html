@@ -69,6 +69,14 @@
     .badge-onboarded { background: rgba(55,138,221,0.14); color: #85B7EB; }
     .tier-free { color: #6E6E76; }
     .tier-pro { color: #6F6BEF; font-weight: 500; }
+    .btn-delete { background: rgba(226,75,74,0.16); color: #F09595; }
+    .btn-delete:hover { background: rgba(226,75,74,0.3); }
+    .btn-delete:disabled { opacity: 0.4; }
+    .confirm-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 100; }
+    .confirm-box { background: #1C1C22; border: 1px solid rgba(255,255,255,0.12); border-radius: 14px; padding: 24px; max-width: 400px; width: 90%; }
+    .confirm-box h3 { font-size: 16px; margin-bottom: 8px; color: #F09595; }
+    .confirm-box p { font-size: 13px; color: #9B9BA3; margin-bottom: 20px; line-height: 1.5; }
+    .confirm-actions { display: flex; gap: 8px; justify-content: flex-end; }
     .actions { display: flex; gap: 8px; justify-content: flex-end; align-items: center; }
     select { width: auto; padding: 6px 8px; font-size: 12px; }
     .empty { text-align: center; padding: 40px; color: #6E6E76; }
@@ -196,6 +204,7 @@
                     <option value="free" ${u.tier === 'free' ? 'selected' : ''}>Free</option>
                     <option value="pro" ${u.tier === 'pro' ? 'selected' : ''}>Pro</option>
                   </select>
+                  <button class="btn btn-delete" onclick="confirmDelete('${u.id}', '${esc(u.email)}')" title="Delete user">Delete</button>
                 </div>
               </td>
             </tr>
@@ -261,6 +270,51 @@
       const model = document.getElementById('ai-model').value;
       const data = await api('/api/ai-config', 'POST', { model });
       showMsg(data.ok ? 'Model updated.' : 'Error: ' + (data.error || 'Unknown'));
+    }
+
+    let pendingDeleteId = null;
+
+    function confirmDelete(userId, email) {
+      pendingDeleteId = userId;
+      const overlay = document.createElement('div');
+      overlay.className = 'confirm-overlay';
+      overlay.id = 'confirm-overlay';
+      overlay.innerHTML = `
+        <div class="confirm-box">
+          <h3>Delete User</h3>
+          <p>This will permanently delete <strong>${esc(email)}</strong> and all their data:
+            Clerk account, Corsair tenant (tokens), chat sessions, and messages. This cannot be undone.</p>
+          <div class="confirm-actions">
+            <button class="btn btn-ghost" onclick="closeConfirm()">Cancel</button>
+            <button class="btn btn-delete" onclick="executeDelete()">Delete Everything</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+    }
+
+    function closeConfirm() {
+      const el = document.getElementById('confirm-overlay');
+      if (el) el.remove();
+      pendingDeleteId = null;
+    }
+
+    async function executeDelete() {
+      if (!pendingDeleteId) return;
+      const userId = pendingDeleteId;
+      closeConfirm();
+      showMsg('Deleting user...');
+      try {
+        const data = await api('/api/users/' + userId, 'DELETE');
+        if (data.ok) {
+          showMsg('User deleted from Clerk, Corsair, and database.');
+        } else {
+          showMsg('Partial delete. ' + JSON.stringify(data.results || {}));
+        }
+        loadUsers();
+      } catch {
+        showMsg('Delete request failed.');
+      }
     }
 
     loadUsers();

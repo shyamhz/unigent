@@ -4,7 +4,7 @@ import { createClerkClient } from "@clerk/backend";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { Pool } from "pg";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import * as schema from "../server/db/schema";
 
@@ -162,6 +162,77 @@ async function handleTier(_req: IncomingMessage, res: ServerResponse) {
   }
 }
 
+async function handleDeleteUser(_req: IncomingMessage, res: ServerResponse, userId: string) {
+  if (!userId) return json(res, { ok: false, error: "Missing userId" }, 400);
+
+  const results: Record<string, string> = {};
+
+  // 1. Delete from Corsair (tenant + all credentials)
+  try {
+    const CORSAIR_DEV_KEY = process.env.CORSAIR_DEV_KEY;
+    const CORSAIR_INSTANCE_ID = process.env.CORSAIR_INSTANCE_ID;
+    if (CORSAIR_DEV_KEY && CORSAIR_INSTANCE_ID) {
+      const corsairRes = await fetch(
+        `https://api.corsair.dev/instances/${CORSAIR_INSTANCE_ID}/tenants/${userId}`,
+        { method: "DELETE", headers: { Authorization: `Bearer ${CORSAIR_DEV_KEY}` } },
+      );
+      results.corsair = corsairRes.ok ? "deleted" : `failed (${corsairRes.status})`;
+    } else {
+      results.corsair = "skipped (no config)";
+    }
+  } catch (err) {
+    results.corsair = `error: ${err instanceof Error ? err.message : String(err)}`;
+  }
+
+  // 2. Delete from DB (chat sessions cascade to messages, corsair entities)
+  try {
+    // Find user's chat sessions
+    const sessions = await db
+      .select({ id: schema.chatSessions.id })
+      .from(schema.chatSessions)
+      .where(eq(schema.chatSessions.userId, userId));
+    const sessionIds = sessions.map((s) => s.id);
+
+    if (sessionIds.length > 0) {
+      // Delete messages for these sessions
+      await db
+        .delete(schema.chatMessages)
+        .where(inArray(schema.chatMessages.sessionId, sessionIds));
+    }
+
+    // Delete chat sessions
+    await db.delete(schema.chatSessions).where(eq(schema.chatSessions.userId, userId));
+
+    // Delete corsair accounts/entities for this tenant
+    const accounts = await db
+      .select({ id: schema.corsairAccounts.id })
+      .from(schema.corsairAccounts)
+      .where(eq(schema.corsairAccounts.tenantId, userId));
+    const accountIds = accounts.map((a) => a.id);
+
+    if (accountIds.length > 0) {
+      await db.delete(schema.corsairEntities).where(inArray(schema.corsairEntities.accountId, accountIds));
+      await db.delete(schema.corsairEvents).where(inArray(schema.corsairEvents.accountId, accountIds));
+    }
+    await db.delete(schema.corsairAccounts).where(eq(schema.corsairAccounts.tenantId, userId));
+
+    results.db = "deleted";
+  } catch (err) {
+    results.db = `error: ${err instanceof Error ? err.message : String(err)}`;
+  }
+
+  // 3. Delete from Clerk (last, so if it fails the data above is already cleaned)
+  try {
+    await clerk.users.deleteUser(userId);
+    results.clerk = "deleted";
+  } catch (err) {
+    results.clerk = `error: ${err instanceof Error ? err.message : String(err)}`;
+  }
+
+  const allOk = Object.values(results).every((v) => v === "deleted" || v.startsWith("skipped"));
+  return json(res, { ok: allOk, results });
+}
+
 async function handleGetAIConfig(_req: IncomingMessage, res: ServerResponse) {
   const config = await getAIConfig();
 
@@ -224,6 +295,12 @@ const server = createServer(async (req, res) => {
   }
   if (url.pathname === "/api/ai-config" && req.method === "POST") {
     return handleSetAIConfig(req, res);
+  }
+
+  // DELETE /api/users/:id — delete user from Clerk + Corsair + DB
+  if (url.pathname.startsWith("/api/users/") && req.method === "DELETE") {
+    const userId = url.pathname.split("/api/users/")[1];
+    return handleDeleteUser(req, res, userId);
   }
 
   res.writeHead(404);

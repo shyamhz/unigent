@@ -73,7 +73,8 @@ async function storeTokensInCorsair(tenantId: string, pluginId: string, tokens: 
   }
 
   for (const f of fields) {
-    await corsairApi(`/plugins/${pluginId}/credentials/${tenantId}`, "PUT", f);
+    // SDK endpoint: PUT /tenants/{tenantId}/plugins/{pluginId}/credentials/{field}
+    await corsairApi(`/tenants/${tenantId}/plugins/${pluginId}/credentials/${f.field}`, "PUT", { value: f.value });
   }
 }
 

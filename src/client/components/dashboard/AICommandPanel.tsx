@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useUser } from '@clerk/nextjs';
+import ReactMarkdown from 'react-markdown';
 import { Input } from '@/client/components/ui/input';
 import {
   createChatSession,
@@ -94,23 +95,10 @@ export default function AICommandPanel() {
     scrollToBottom();
   }, [messages, scrollToBottom]);
 
+  // Load connections and session list on mount — but do NOT auto-load any session
   useEffect(() => {
     getAIConnections().then(setConnections);
-    getChatSessions().then((s) => {
-      setSessions(s);
-      if (s.length > 0) {
-        setActiveSessionId(s[0].id);
-        getChatMessages(s[0].id).then((msgs) => {
-          setMessages(msgs.map((m) => ({
-            id: m.id,
-            role: m.role,
-            content: m.content ?? '',
-            toolCalls: m.toolCalls as Array<{ toolName: string; args: unknown }> | undefined,
-            toolResult: m.toolResult as unknown,
-          })));
-        });
-      }
-    });
+    getChatSessions().then(setSessions);
   }, []);
 
   const loadSession = useCallback(async (sessionId: string) => {
@@ -125,26 +113,20 @@ export default function AICommandPanel() {
     })));
   }, []);
 
-  const startNewSession = useCallback(async () => {
-    const session = await createChatSession();
-    setSessions((prev) => [session, ...prev]);
-    setActiveSessionId(session.id);
+  const startNewSession = useCallback(() => {
+    setActiveSessionId(null);
     setMessages([]);
+    inputRef.current?.focus();
   }, []);
 
   const deleteSession = useCallback(async (sessionId: string) => {
     await removeChatSession(sessionId);
     setSessions((prev) => prev.filter((s) => s.id !== sessionId));
     if (activeSessionId === sessionId) {
-      const remaining = sessions.filter((s) => s.id !== sessionId);
-      if (remaining.length > 0) {
-        loadSession(remaining[0].id);
-      } else {
-        setActiveSessionId(null);
-        setMessages([]);
-      }
+      setActiveSessionId(null);
+      setMessages([]);
     }
-  }, [activeSessionId, sessions, loadSession]);
+  }, [activeSessionId]);
 
   const sendMessage = useCallback(async () => {
     if (!input.trim() || isStreaming) return;
@@ -203,7 +185,6 @@ export default function AICommandPanel() {
       if (!reader) throw new Error('No reader');
 
       const decoder = new TextDecoder();
-      let buffer = '';
       let accumulated = '';
 
       while (true) {
@@ -304,6 +285,21 @@ export default function AICommandPanel() {
             <span className={`h-1.5 w-1.5 rounded-full ${connectedCount > 0 ? 'bg-emerald-400' : 'bg-amber-400'}`} />
             <span className="text-muted-foreground">{connectedCount}/{totalCount} connected</span>
           </div>
+          {/* History icon */}
+          <button
+            onClick={() => setShowSidebar(!showSidebar)}
+            className={`flex h-7 w-7 items-center justify-center rounded-lg transition-colors ${
+              showSidebar
+                ? 'bg-primary/15 text-primary'
+                : 'bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground'
+            }`}
+            title="Chat history"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 8v4l3 3" />
+              <circle cx="12" cy="12" r="9" />
+            </svg>
+          </button>
           <button
             onClick={startNewSession}
             className="flex h-7 items-center gap-1 rounded-lg bg-secondary/50 px-2 text-[0.7rem] text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
@@ -319,10 +315,13 @@ export default function AICommandPanel() {
       <div className="flex flex-1 min-h-0">
         {/* Session Sidebar */}
         {showSidebar && (
-          <div className="w-48 shrink-0 border-r border-border/50 flex flex-col">
-            <div className="flex-1 overflow-y-auto py-2">
+          <div className="w-56 shrink-0 border-r border-border/50 flex flex-col bg-card/50">
+            <div className="px-3 py-2.5 border-b border-border/30">
+              <span className="text-[0.7rem] font-medium text-muted-foreground uppercase tracking-wider">History</span>
+            </div>
+            <div className="flex-1 overflow-y-auto py-1">
               {sessions.length === 0 ? (
-                <div className="px-3 py-6 text-center text-[0.7rem] text-muted-foreground/50">
+                <div className="px-3 py-8 text-center text-[0.7rem] text-muted-foreground/50">
                   No conversations yet
                 </div>
               ) : (
@@ -331,7 +330,7 @@ export default function AICommandPanel() {
                     key={session.id}
                     className={`group flex items-center gap-2 px-3 py-2 mx-1 rounded-lg cursor-pointer transition-colors ${
                       activeSessionId === session.id
-                        ? 'bg-secondary/80 text-foreground'
+                        ? 'bg-primary/10 text-foreground'
                         : 'text-muted-foreground hover:bg-secondary/40 hover:text-foreground'
                     }`}
                     onClick={() => loadSession(session.id)}
@@ -411,17 +410,58 @@ export default function AICommandPanel() {
                           <span className="mb-1 block text-[0.65rem] uppercase tracking-wider text-muted-foreground/50">Tool Result</span>
                           {typeof msg.content === 'string' ? msg.content.slice(0, 200) : JSON.stringify(msg.content).slice(0, 200)}
                         </div>
+                      ) : msg.role === 'user' ? (
+                        <div className="inline-block rounded-2xl rounded-br-sm bg-secondary px-4 py-2.5 text-[0.82rem] leading-relaxed text-foreground whitespace-pre-wrap">
+                          {msg.content}
+                        </div>
                       ) : (
-                        <div
-                          className={`inline-block rounded-2xl px-4 py-2.5 text-[0.82rem] leading-relaxed whitespace-pre-wrap ${
-                            msg.role === 'user'
-                              ? 'rounded-br-sm bg-secondary text-foreground'
-                              : 'rounded-bl-sm bg-primary/8 text-foreground'
-                          }`}
-                        >
-                          {msg.content || (isStreaming && msg.id === messages[messages.length - 1]?.id ? (
+                        <div className="inline-block rounded-2xl rounded-bl-sm bg-primary/8 px-4 py-2.5 text-[0.82rem] leading-relaxed text-foreground">
+                          {msg.content ? (
+                            <ReactMarkdown
+                              components={{
+                                p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                                ul: ({ children }) => <ul className="mb-2 list-disc pl-4 space-y-1">{children}</ul>,
+                                ol: ({ children }) => <ol className="mb-2 list-decimal pl-4 space-y-1">{children}</ol>,
+                                li: ({ children }) => <li>{children}</li>,
+                                h1: ({ children }) => <h1 className="mb-2 text-lg font-semibold">{children}</h1>,
+                                h2: ({ children }) => <h2 className="mb-2 text-base font-semibold">{children}</h2>,
+                                h3: ({ children }) => <h3 className="mb-1 text-sm font-semibold">{children}</h3>,
+                                code: ({ children, className }) => {
+                                  const isInline = !className;
+                                  return isInline ? (
+                                    <code className="rounded bg-primary/10 px-1.5 py-0.5 text-[0.78rem] font-mono">{children}</code>
+                                  ) : (
+                                    <code className="block overflow-x-auto rounded-lg bg-background/80 p-3 text-[0.78rem] font-mono">{children}</code>
+                                  );
+                                },
+                                pre: ({ children }) => <pre className="mb-2 overflow-x-auto">{children}</pre>,
+                                blockquote: ({ children }) => (
+                                  <blockquote className="mb-2 border-l-2 border-primary/30 pl-3 text-muted-foreground">{children}</blockquote>
+                                ),
+                                a: ({ children, href }) => (
+                                  <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2 hover:text-primary/80">{children}</a>
+                                ),
+                                strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                                em: ({ children }) => <em className="italic">{children}</em>,
+                                hr: () => <hr className="my-3 border-border/30" />,
+                                table: ({ children }) => (
+                                  <div className="mb-2 overflow-x-auto">
+                                    <table className="border-collapse text-[0.78rem]">{children}</table>
+                                  </div>
+                                ),
+                                th: ({ children }) => (
+                                  <th className="border border-border/30 bg-secondary/50 px-2 py-1 text-left font-medium">{children}</th>
+                                ),
+                                td: ({ children }) => (
+                                  <td className="border border-border/30 px-2 py-1">{children}</td>
+                                ),
+                              }}
+                            >
+                              {msg.content}
+                            </ReactMarkdown>
+                          ) : isStreaming && msg.id === messages[messages.length - 1]?.id ? (
                             <span className="text-muted-foreground">Thinking…</span>
-                          ) : null)}
+                          ) : null}
                           {msg.content && isStreaming && msg.id === messages[messages.length - 1]?.id && msg.role === 'assistant' && (
                             <span className="ml-0.5 inline-block h-4 w-1.5 animate-pulse rounded-sm bg-primary/60 align-text-bottom" />
                           )}

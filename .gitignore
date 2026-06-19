@@ -45,3 +45,4 @@ next-env.d.ts
 
 #other secrets
 google_oauth_cred.json
+ai-config.json

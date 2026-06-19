@@ -3,16 +3,14 @@ import { auth } from '@clerk/nextjs/server';
 import { NextRequest } from 'next/server';
 import { getAIModel } from '@/server/services/aicredits';
 import { buildSystemPrompt } from '@/server/ai/system-prompt';
-import { buildTools } from '@/server/ai/tools';
-import { checkConnections } from '@/server/actions/connections';
-import { getAIConfig } from '@/server/ai/config';
-import { isHostedAvailable, getHostedTools } from '@/server/services/corsair-hosted';
+import { getHostedTools } from '@/server/services/corsair-hosted';
 import {
   getMessages,
   addMessage,
   createSession,
   generateSessionTitle,
 } from '@/server/ai/memory';
+import { getAIConfig } from '@/server/ai/config';
 
 const MAX_RETRIES = 2;
 
@@ -45,26 +43,8 @@ export async function POST(req: NextRequest) {
       return jsonError('Last message must be from user', 400);
     }
 
-    const config = getAIConfig();
-
-    let tools: Record<string, Tool> = {};
-    let corsairMode = 'self-hosted';
-
-    if (isHostedAvailable()) {
-      try {
-        const hostedTools = await getHostedTools(userId);
-        if (Object.keys(hostedTools).length > 0) {
-          tools = hostedTools;
-          corsairMode = 'hosted';
-        }
-      } catch {}
-    }
-
-    if (Object.keys(tools).length === 0) {
-      const connections = await checkConnections();
-      tools = buildTools(connections);
-      corsairMode = 'self-hosted';
-    }
+    const config = await getAIConfig();
+    const tools = await getHostedTools(userId);
 
     sessionId = inputSessionId;
     if (!sessionId) {
@@ -88,9 +68,9 @@ export async function POST(req: NextRequest) {
           model: getAIModel(config.model),
           system: systemPrompt,
           tools,
-          stopWhen: stepCountIs(config.maxSteps),
-          temperature: config.temperature,
-          maxOutputTokens: config.maxTokens,
+          stopWhen: stepCountIs(15),
+          temperature: 0.7,
+          maxOutputTokens: 4096,
           messages: messages.map((m) => ({
             role: m.role as 'user' | 'assistant',
             content: m.content,
@@ -109,16 +89,74 @@ export async function POST(req: NextRequest) {
           },
         });
 
-        const response = result.toTextStreamResponse();
-        const headers = new Headers(response.headers);
-        headers.set('x-session-id', sessionId!);
-        headers.set('x-model', config.model);
-        headers.set('x-attempt', String(attempt));
-        headers.set('x-corsair-mode', corsairMode);
+        const encoder = new TextEncoder();
+        const stream = new ReadableStream({
+          async start(controller) {
+            try {
+              for await (const part of result.fullStream) {
+                switch (part.type) {
+                  case 'reasoning-delta':
+                    controller.enqueue(
+                      encoder.encode(`e:${JSON.stringify({ type: 'thinking', text: part.text })}\n`)
+                    );
+                    break;
+                  case 'tool-input-start':
+                    controller.enqueue(
+                      encoder.encode(`e:${JSON.stringify({ type: 'tool-start', toolName: part.toolName })}\n`)
+                    );
+                    break;
+                  case 'tool-input-delta':
+                    break;
+                  case 'tool-input-end':
+                    controller.enqueue(
+                      encoder.encode(`e:${JSON.stringify({ type: 'tool-end', toolName: '' })}\n`)
+                    );
+                    break;
+                  case 'tool-call':
+                    controller.enqueue(
+                      encoder.encode(`e:${JSON.stringify({ type: 'tool-call', toolName: part.toolName, input: part.input })}\n`)
+                    );
+                    break;
+                  case 'tool-result':
+                    controller.enqueue(
+                      encoder.encode(`e:${JSON.stringify({ type: 'tool-result', toolName: part.toolName })}\n`)
+                    );
+                    break;
+                  case 'text-delta':
+                    controller.enqueue(
+                      encoder.encode(`e:${JSON.stringify({ type: 'text', text: part.text })}\n`)
+                    );
+                    break;
+                  case 'error':
+                    controller.enqueue(
+                      encoder.encode(`e:${JSON.stringify({ type: 'error', error: 'Tool execution failed' })}\n`)
+                    );
+                    break;
+                }
+              }
+            } catch (err) {
+              if ((err as Error).name !== 'AbortError') {
+                controller.enqueue(
+                  encoder.encode(`e:${JSON.stringify({ type: 'error', error: (err as Error).message })}\n`)
+                );
+              }
+            } finally {
+              controller.enqueue(encoder.encode('e:{"type":"done"}\n'));
+              controller.close();
+            }
+          },
+        });
 
-        return new Response(response.body, {
-          status: response.status,
-          headers,
+        return new Response(stream, {
+          status: 200,
+          headers: {
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+            'x-session-id': sessionId!,
+            'x-model': config.model,
+            'x-attempt': String(attempt),
+          },
         });
       } catch (err) {
         lastError = err instanceof Error ? err : new Error(String(err));

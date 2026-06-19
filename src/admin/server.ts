@@ -184,7 +184,7 @@ async function handleDeleteUser(_req: IncomingMessage, res: ServerResponse, user
     results.corsair = `error: ${err instanceof Error ? err.message : String(err)}`;
   }
 
-  // 2. Delete from DB (chat sessions cascade to messages, corsair entities)
+  // 2. Delete from DB (chat sessions cascade to messages)
   try {
     // Find user's chat sessions
     const sessions = await db
@@ -202,19 +202,6 @@ async function handleDeleteUser(_req: IncomingMessage, res: ServerResponse, user
 
     // Delete chat sessions
     await db.delete(schema.chatSessions).where(eq(schema.chatSessions.userId, userId));
-
-    // Delete corsair accounts/entities for this tenant
-    const accounts = await db
-      .select({ id: schema.corsairAccounts.id })
-      .from(schema.corsairAccounts)
-      .where(eq(schema.corsairAccounts.tenantId, userId));
-    const accountIds = accounts.map((a) => a.id);
-
-    if (accountIds.length > 0) {
-      await db.delete(schema.corsairEntities).where(inArray(schema.corsairEntities.accountId, accountIds));
-      await db.delete(schema.corsairEvents).where(inArray(schema.corsairEvents.accountId, accountIds));
-    }
-    await db.delete(schema.corsairAccounts).where(eq(schema.corsairAccounts.tenantId, userId));
 
     results.db = "deleted";
   } catch (err) {

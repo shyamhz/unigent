@@ -1,5 +1,4 @@
 import DashboardLayout from '@/client/components/dashboard/DashboardLayout';
-import { getConnectUrl } from '@/server/actions/corsair';
 import { isHostedAvailable } from '@/server/services/corsair-hosted';
 import { auth, clerkClient } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
@@ -24,14 +23,12 @@ export default async function Home() {
   const gmailConnected = connections.gmail === true;
   const calendarConnected = connections.calendar === true;
 
-  let connectUrl: string | null = null;
-  if (isHostedAvailable() && (!gmailConnected || !calendarConnected)) {
-    connectUrl = await getConnectUrl();
-  }
+  // Show connect banner if not both connected
+  const showConnectBanner = isHostedAvailable() && (!gmailConnected || !calendarConnected);
 
   return (
     <DashboardLayout
-      connectUrl={connectUrl}
+      showConnectBanner={showConnectBanner}
       gmailConnected={gmailConnected}
       calendarConnected={calendarConnected}
     />

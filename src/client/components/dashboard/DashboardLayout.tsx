@@ -12,12 +12,12 @@ type Panel = 'gmail' | 'ai' | 'calendar';
 const PANEL_RATIOS = { gmail: 0.25, ai: 0.40, calendar: 0.35 };
 
 interface DashboardLayoutProps {
-  connectUrl?: string | null;
+  showConnectBanner?: boolean;
   gmailConnected?: boolean;
   calendarConnected?: boolean;
 }
 
-export default function DashboardLayout({ connectUrl, gmailConnected = false, calendarConnected = false }: DashboardLayoutProps) {
+export default function DashboardLayout({ showConnectBanner = false, gmailConnected = false, calendarConnected = false }: DashboardLayoutProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [activePanel, setActivePanel] = useState<Panel>('gmail');
   const [isMobile, setIsMobile] = useState(false);
@@ -152,7 +152,7 @@ export default function DashboardLayout({ connectUrl, gmailConnected = false, ca
   return (
     <div className="flex h-screen flex-col overflow-hidden">
       <TopBar />
-      {connectUrl && (
+      {showConnectBanner && (
         <div className="shrink-0 border-b border-amber-500/20 bg-amber-500/10 px-4 py-2.5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -162,9 +162,7 @@ export default function DashboardLayout({ connectUrl, gmailConnected = false, ca
               <span className="text-sm text-amber-200">Connect your Gmail and Google Calendar to start using Unigent AI.</span>
             </div>
             <a
-              href={connectUrl}
-              target="_blank"
-              rel="noopener noreferrer"
+              href="/api/corsair/connect"
               className="rounded-lg bg-amber-500/20 px-3 py-1.5 text-xs font-medium text-amber-200 hover:bg-amber-500/30 transition-colors"
             >
               Connect Accounts

@@ -7,6 +7,7 @@ const isPublicRoute = createRouteMatcher([
   "/sign-up(.*)",
   "/coming-soon(.*)",
   "/waiting(.*)",
+  "/api/corsair/connect(.*)",
   "/api/corsair/oauth/callback(.*)",
 ]);
 

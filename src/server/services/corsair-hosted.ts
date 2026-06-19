@@ -35,19 +35,6 @@ export async function deleteTenant(tenantId: string): Promise<boolean> {
   }
 }
 
-export async function getConnectLink(
-  tenantId: string,
-  plugins?: string[],
-): Promise<{ url: string } | null> {
-  if (!isHostedAvailable()) return null;
-  const inst = getInst();
-  const corsairTenantId = await getOrCreateTenant(tenantId);
-  const link = await inst
-    .tenant(corsairTenantId)
-    .connectLink.create({ plugins: plugins as any });
-  return link;
-}
-
 export async function getHostedTools(tenantId: string): Promise<Record<string, Tool>> {
   const inst = getInst();
   const corsairTenantId = await getOrCreateTenant(tenantId);

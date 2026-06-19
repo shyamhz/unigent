@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { useSession } from "@clerk/nextjs";
-import { getConnectUrl } from "@/server/actions/corsair";
 import { SignOutLink } from "@/client/components/sign-out-link";
 
 type Step = "welcome" | "connect" | "connect-calendar" | "complete";
@@ -60,38 +59,17 @@ function OnboardingContent() {
   // Step 1 → Step 2
   const handleGetStarted = () => setStep("connect");
 
-  // Step 2: Connect Gmail with Google
-  const handleConnectGmail = async () => {
+  // Connect Gmail/Calendar — redirect to our own API route
+  const handleConnectGmail = () => {
     setStatus("loading");
     setError("");
-
-    try {
-      const url = await getConnectUrl();
-      if (!url) throw new Error("Failed to generate connect URL");
-      window.location.href = url;
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to connect. Please try again."
-      );
-      setStatus("idle");
-    }
+    window.location.href = "/api/corsair/connect";
   };
 
-  // Step 2b: Connect Calendar with Google
-  const handleConnectCalendar = async () => {
+  const handleConnectCalendar = () => {
     setStatus("loading");
     setError("");
-
-    try {
-      const url = await getConnectUrl();
-      if (!url) throw new Error("Failed to generate connect URL");
-      window.location.href = url;
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to connect. Please try again."
-      );
-      setStatus("idle");
-    }
+    window.location.href = "/api/corsair/connect";
   };
 
   const steps = [

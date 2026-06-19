@@ -1,6 +1,5 @@
 'use client';
 
-import { getConnectUrl } from '@/server/actions/corsair';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 
@@ -15,17 +14,15 @@ export function ConnectButton({ type, isConnected, onError }: ConnectButtonProps
 
   if (isConnected) return null;
 
-  const handleConnect = async () => {
+  const handleConnect = () => {
     setLoading(true);
     try {
-      const url = await getConnectUrl();
-      if (!url) throw new Error('Failed to generate connect URL');
-      window.location.href = url;
+      // Redirect to our own API route which handles Google OAuth
+      window.location.href = '/api/corsair/connect';
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to connect';
       toast.error(message);
       onError?.(message);
-    } finally {
       setLoading(false);
     }
   };

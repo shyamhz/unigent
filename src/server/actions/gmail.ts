@@ -11,8 +11,8 @@ import {
   createDraftViaGmail,
   sendDraftViaGmail,
   sendEmailViaGmail,
-} from '@/utils/api/gmail';
-import type { EmailPreview } from '@/utils/api/gmail/types';
+} from '@/server/services/gmail';
+import type { EmailPreview } from '@/server/services/gmail/types';
 
 async function getTenantId(): Promise<string> {
   const { userId } = await auth();

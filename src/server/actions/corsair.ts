@@ -1,7 +1,7 @@
 'use server';
 
 import { auth } from '@clerk/nextjs/server';
-import { isHostedAvailable, getOrCreateTenant } from '@/lib/corsair-hosted';
+import { isHostedAvailable, getOrCreateTenant } from '@/server/services/corsair-hosted';
 
 const INSTANCE_ID = process.env.CORSAIR_INSTANCE_ID!;
 const DEV_KEY = process.env.CORSAIR_DEV_KEY!;

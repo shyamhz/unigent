@@ -10,7 +10,7 @@ import {
   addMessage,
   type ChatSession,
   type ChatMessage,
-} from '@/lib/ai/memory';
+} from '@/server/ai/memory';
 import { checkConnections } from './connections';
 
 async function getUserId(): Promise<string> {

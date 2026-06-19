@@ -7,8 +7,8 @@ import {
   createEvent as createEventDB,
   updateEvent as updateEventDB,
   deleteEvent as deleteEventDB,
-} from '@/utils/api/googlecalendar';
-import type { CalendarEvent, CreateEventParams, UpdateEventParams } from '@/utils/api/googlecalendar/types';
+} from '@/server/services/googlecalendar';
+import type { CalendarEvent, CreateEventParams, UpdateEventParams } from '@/server/services/googlecalendar/types';
 
 async function getTenantId(): Promise<string> {
   const { userId } = await auth();

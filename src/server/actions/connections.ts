@@ -1,8 +1,8 @@
 'use server';
 
 import { auth } from '@clerk/nextjs/server';
-import { db } from '@/db';
-import { corsairAccounts, corsairIntegrations } from '@/db/schema';
+import { db } from '@/server/db';
+import { corsairAccounts, corsairIntegrations } from '@/server/db/schema';
 import { eq, and } from 'drizzle-orm';
 
 export type PluginName = 'gmail' | 'googlecalendar';

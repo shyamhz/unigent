@@ -69,3 +69,19 @@ export async function callCorsairOperation(
   if (!text) throw new Error('Empty response from Corsair');
   return JSON.parse(text);
 }
+
+export async function runCorsairScript(
+  tenantId: string,
+  code: string,
+): Promise<unknown> {
+  const inst = getInst();
+  const corsairTenantId = await getOrCreateTenant(tenantId);
+  const mcpClient = await inst.tenant(corsairTenantId).mcp.createVercelClient();
+  const tools = await mcpClient.tools();
+
+  const result = await tools.run_script.execute({ code });
+
+  const text = (result as { content?: Array<{ text?: string }> })?.content?.[0]?.text;
+  if (!text) throw new Error('Empty response from Corsair');
+  return JSON.parse(text);
+}

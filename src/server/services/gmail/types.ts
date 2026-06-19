@@ -16,19 +16,18 @@ export interface DraftEmailParams {
   body: string;
 }
 
+export interface SearchEmailsOptions {
+  from?: string;
+  to?: string;
+  subject?: string;
+  query?: string;
+  limit?: number;
+  offset?: number;
+}
+
 export interface ListEmailsOptions {
   maxResults?: number;
   q?: string;
   labelIds?: string[];
   pageToken?: string;
-}
-
-export interface SearchEmailsOptions {
-  query?: string;
-  from?: string;
-  to?: string;
-  subject?: string;
-  limit?: number;
-  offset?: number;
-  includeBody?: boolean;
 }

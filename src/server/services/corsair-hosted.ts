@@ -39,14 +39,5 @@ export async function getHostedTools(tenantId: string): Promise<Record<string, T
   const inst = getInst();
   const corsairTenantId = await getOrCreateTenant(tenantId);
   const mcpClient = await inst.tenant(corsairTenantId).mcp.createVercelClient();
-  const allTools = await mcpClient.tools();
-
-  const ALLOWED = ['gmail.', 'googlecalendar.'];
-  const filtered: Record<string, Tool> = {};
-  for (const [key, value] of Object.entries(allTools)) {
-    if (ALLOWED.some((p) => key.startsWith(p))) {
-      filtered[key] = value as Tool;
-    }
-  }
-  return filtered;
+  return await mcpClient.tools();
 }

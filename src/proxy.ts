@@ -6,11 +6,12 @@ const isPublicRoute = createRouteMatcher([
   "/sign-in(.*)",
   "/sign-up(.*)",
   "/coming-soon(.*)",
+  "/waiting(.*)",
   "/api/corsair/oauth/callback(.*)",
 ]);
 
 export default clerkMiddleware(async (auth, req) => {
-  const { userId } = await auth();
+  const { userId, sessionClaims } = await auth();
 
   // Logged-in users hitting marketing page → redirect to dashboard
   if (userId && req.nextUrl.pathname === "/") {
@@ -20,6 +21,16 @@ export default clerkMiddleware(async (auth, req) => {
   // Logged-out users hitting protected routes → redirect to sign-in
   if (!userId && !isPublicRoute(req)) {
     return NextResponse.redirect(new URL("/sign-in", req.url));
+  }
+
+  // Logged-in users on protected routes: check access_allowed
+  if (userId && !isPublicRoute(req)) {
+    const meta = (sessionClaims?.publicMetadata ?? {}) as Record<string, unknown>;
+    const accessAllowed = meta.access_allowed === true;
+
+    if (!accessAllowed && req.nextUrl.pathname !== "/waiting") {
+      return NextResponse.redirect(new URL("/waiting", req.url));
+    }
   }
 });
 

@@ -1,6 +1,6 @@
 export function getAccessGrantedEmail(userName: string): string {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://unigent.in";
-  const signInUrl = `${appUrl}/sign-in`;
+  const onboardingUrl = `${appUrl}/onboarding`;
 
   return `
 <!DOCTYPE html>
@@ -74,8 +74,8 @@ export function getAccessGrantedEmail(userName: string): string {
                   <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
                     <tr>
                       <td align="center">
-                        <a href="${signInUrl}" style="display: inline-block; background-color: #6F6BEF; color: #FFFFFF; font-size: 14px; font-weight: 500; text-decoration: none; padding: 12px 28px; border-radius: 8px; letter-spacing: 0.01em;">
-                          Sign in to Unigent
+                         <a href="${onboardingUrl}" style="display: inline-block; background-color: #6F6BEF; color: #FFFFFF; font-size: 14px; font-weight: 500; text-decoration: none; padding: 12px 28px; border-radius: 8px; letter-spacing: 0.01em;">
+                          Set Up Your Workspace
                         </a>
                       </td>
                     </tr>

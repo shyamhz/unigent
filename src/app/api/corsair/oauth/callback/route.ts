@@ -1,8 +1,47 @@
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
+import { corsairAccounts, corsairIntegrations } from "@/server/db/schema";
+import { db } from "@/server/db";
+import { eq } from "drizzle-orm";
 
 const INSTANCE_ID = process.env.CORSAIR_INSTANCE_ID!;
 const DEV_KEY = process.env.CORSAIR_DEV_KEY!;
+
+async function ensureCorsairIntegration(pluginId: string): Promise<string> {
+  const existing = await db
+    .select()
+    .from(corsairIntegrations)
+    .where(eq(corsairIntegrations.id, pluginId))
+    .limit(1);
+
+  if (existing.length > 0) return existing[0].id;
+
+  await db.insert(corsairIntegrations).values({
+    id: pluginId,
+    name: pluginId,
+    config: {},
+  });
+  return pluginId;
+}
+
+async function createCorsairAccountIfMissing(userId: string, pluginId: string) {
+  const accountId = `${userId}:${pluginId}`;
+  const existing = await db
+    .select()
+    .from(corsairAccounts)
+    .where(eq(corsairAccounts.id, accountId))
+    .limit(1);
+
+  if (existing.length > 0) return;
+
+  const integrationId = await ensureCorsairIntegration(pluginId);
+  await db.insert(corsairAccounts).values({
+    id: accountId,
+    tenantId: userId,
+    integrationId,
+    config: {},
+  });
+}
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -22,26 +61,38 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(new URL("/sign-in", baseUrl));
     }
 
-    // Verify tenant has credentials by listing plugins for this tenant
-    // The connect link already stored tokens — we just confirm and update Clerk metadata
-    const tokenRes = await fetch(
-      `https://api.corsair.dev/instances/${INSTANCE_ID}/tenants/${userId}/plugins`,
-      {
-        headers: {
-          Authorization: `Bearer ${DEV_KEY}`,
-        },
-      },
-    );
-
+    // Verify tenant has credentials by checking plugins
     let gmailConnected = false;
     let calendarConnected = false;
 
-    if (tokenRes.ok) {
-      const data = await tokenRes.json() as { plugins: Array<{ pluginId: string; hasCredentials: boolean }> };
-      for (const p of data.plugins || []) {
-        if (p.pluginId === "gmail" && p.hasCredentials) gmailConnected = true;
-        if (p.pluginId === "googlecalendar" && p.hasCredentials) calendarConnected = true;
+    try {
+      const tokenRes = await fetch(
+        `https://api.corsair.dev/instances/${INSTANCE_ID}/plugins/gmail/credentials?tenantId=${userId}`,
+        { headers: { Authorization: `Bearer ${DEV_KEY}` } },
+      );
+      if (tokenRes.ok) {
+        const data = await tokenRes.json() as { fields: Array<{ field: string; scope: string; set: boolean }> };
+        gmailConnected = data.fields.some((f) => f.scope === "account" && f.set);
       }
+    } catch {}
+
+    try {
+      const tokenRes = await fetch(
+        `https://api.corsair.dev/instances/${INSTANCE_ID}/plugins/googlecalendar/credentials?tenantId=${userId}`,
+        { headers: { Authorization: `Bearer ${DEV_KEY}` } },
+      );
+      if (tokenRes.ok) {
+        const data = await tokenRes.json() as { fields: Array<{ field: string; scope: string; set: boolean }> };
+        calendarConnected = data.fields.some((f) => f.scope === "account" && f.set);
+      }
+    } catch {}
+
+    // Create Corsair accounts in DB for connected plugins
+    if (gmailConnected) {
+      await createCorsairAccountIfMissing(userId, "gmail");
+    }
+    if (calendarConnected) {
+      await createCorsairAccountIfMissing(userId, "googlecalendar");
     }
 
     // Update Clerk metadata

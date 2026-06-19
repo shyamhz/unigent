@@ -94,23 +94,6 @@ function OnboardingContent() {
     }
   };
 
-  // Step 2: Skip — mark onboarded, then go to dashboard
-  const handleSkip = async () => {
-    setStatus("loading");
-    try {
-      await fetch("/api/user/onboarded", { method: "POST" });
-    } catch {
-      // ignore
-    }
-    goToDashboard();
-  };
-
-  // Step 3: Go to Dashboard
-  const handleGoToDashboard = () => {
-    setStatus("loading");
-    goToDashboard();
-  };
-
   const steps = [
     { id: "welcome", label: "Welcome" },
     { id: "connect", label: "Connect" },
@@ -337,11 +320,11 @@ function OnboardingContent() {
               </button>
 
               <button
-                onClick={handleSkip}
+                onClick={goToDashboard}
                 disabled={status === "loading"}
                 className="mt-3 w-full rounded-lg border border-border px-4 py-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Skip for now
+                I&apos;ll do this later
               </button>
             </div>
           )}
@@ -413,11 +396,11 @@ function OnboardingContent() {
               </button>
 
               <button
-                onClick={handleSkip}
+                onClick={goToDashboard}
                 disabled={status === "loading"}
                 className="mt-3 w-full rounded-lg border border-border px-4 py-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Skip for now
+                I&apos;ll do this later
               </button>
             </div>
           )}
@@ -458,7 +441,7 @@ function OnboardingContent() {
               </div>
 
               <button
-                onClick={handleGoToDashboard}
+                onClick={() => { setStatus("loading"); goToDashboard(); }}
                 disabled={status === "loading"}
                 className="w-full rounded-lg bg-primary px-4 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
               >

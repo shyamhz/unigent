@@ -41,3 +41,22 @@ export async function getHostedTools(tenantId: string): Promise<Record<string, T
   const mcpClient = await inst.tenant(corsairTenantId).mcp.createVercelClient();
   return await mcpClient.tools();
 }
+
+export async function callCorsairOperation(
+  tenantId: string,
+  path: string,
+  params: Record<string, unknown>,
+): Promise<unknown> {
+  const inst = getInst();
+  const corsairTenantId = await getOrCreateTenant(tenantId);
+  const mcpClient = await inst.tenant(corsairTenantId).mcp.createVercelClient();
+  const tools = await mcpClient.tools();
+
+  const paramsJson = JSON.stringify(params);
+  const code = `const r = await corsair.${path}(${paramsJson}); return r;`;
+  const result = await tools.run_script.execute({ code });
+
+  const text = (result as { content?: Array<{ text?: string }> })?.content?.[0]?.text;
+  if (!text) throw new Error('Empty response from Corsair');
+  return JSON.parse(text);
+}

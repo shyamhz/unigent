@@ -3,7 +3,7 @@ import { createServer, IncomingMessage, ServerResponse } from "node:http";
 import { createClerkClient } from "@clerk/backend";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { getAIConfig, setAIConfig } from "../lib/ai/config";
+import { getAIConfig, setAIConfig } from "../server/ai/config";
 
 // Admin panel is development-only
 if (process.env.NODE_ENV === "production") {
@@ -11,7 +11,7 @@ if (process.env.NODE_ENV === "production") {
   process.exit(1);
 }
 
-const PORT = 3001;
+const PORT = Number(process.env.ADMIN_PORT || 3001);
 const HOST = "127.0.0.1";
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "unigent-admin-2026";
 
@@ -82,7 +82,7 @@ async function handleGrant(_req: IncomingMessage, res: ServerResponse) {
     const user = await clerk.users.getUser(userId);
     const existing = (user.publicMetadata || {}) as UserMeta;
 
-    await clerk.users.updateUser(userId, {
+    await clerk.users.updateUserMetadata(userId, {
       publicMetadata: { ...existing, access_allowed: true, tier: existing.tier || "free" },
     });
 
@@ -90,7 +90,7 @@ async function handleGrant(_req: IncomingMessage, res: ServerResponse) {
     let emailSent = false;
     let emailError = "";
     try {
-      const { sendEmail } = await import("../../lib/email");
+      const { sendEmail } = await import("../../server/services/email");
       const { getAccessGrantedEmail } = await import("../../emails/access-granted");
       const email = user.emailAddresses?.[0]?.emailAddress;
       if (email) {
@@ -120,7 +120,7 @@ async function handleRevoke(_req: IncomingMessage, res: ServerResponse) {
   try {
     const user = await clerk.users.getUser(userId);
     const existing = (user.publicMetadata || {}) as UserMeta;
-    await clerk.users.updateUser(userId, {
+    await clerk.users.updateUserMetadata(userId, {
       publicMetadata: { ...existing, access_allowed: false },
     });
     return json(res, { ok: true });
@@ -136,7 +136,7 @@ async function handleTier(_req: IncomingMessage, res: ServerResponse) {
   try {
     const user = await clerk.users.getUser(userId);
     const existing = (user.publicMetadata || {}) as UserMeta;
-    await clerk.users.updateUser(userId, {
+    await clerk.users.updateUserMetadata(userId, {
       publicMetadata: { ...existing, tier },
     });
     return json(res, { ok: true });
@@ -223,5 +223,5 @@ const server = createServer(async (req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`\n  ⚡ Unigent Admin Panel`);
   console.log(`  → http://${HOST}:${PORT}`);
-  console.log(`  → Only accessible from localhost\n`);
+  console.log(`  → Password: ${process.env.ADMIN_PASSWORD ? "SET" : "MISSING"}\n`);
 });

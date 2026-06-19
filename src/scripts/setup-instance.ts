@@ -6,7 +6,7 @@ const BASE = `https://api.corsair.dev/instances/${INSTANCE_ID}`;
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID!;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET!;
-const APP_URL = (process.env.NEXT_PUBLIC_APP_URL || "https://unigent.in").replace(/\/+$/, "");
+const APP_URL = "https://unigent.in";
 const REDIRECT_URL = `${APP_URL}/api/corsair/oauth/callback`;
 
 async function api(path: string, method = "GET", body?: unknown) {

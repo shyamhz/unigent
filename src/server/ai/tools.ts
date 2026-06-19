@@ -15,14 +15,14 @@ import {
   getUpdatesEmails,
   getSocialEmails,
   getSentEmails,
-} from '@/app/actions/gmail';
+} from '@/server/actions/gmail';
 import {
   getEvents,
   searchEvents,
   createCalendarEvent,
   updateCalendarEvent,
   deleteCalendarEvent,
-} from '@/app/actions/calendar';
+} from '@/server/actions/calendar';
 
 export function buildTools(connections: { gmail: boolean; googlecalendar: boolean }) {
   const tools: Record<string, Tool> = {};

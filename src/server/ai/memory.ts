@@ -1,6 +1,6 @@
 import { eq, desc } from 'drizzle-orm';
-import { db } from '@/db';
-import { chatSessions, chatMessages } from '@/db/schema';
+import { db } from '@/server/db';
+import { chatSessions, chatMessages } from '@/server/db/schema';
 
 export interface ChatMessage {
   id: string;

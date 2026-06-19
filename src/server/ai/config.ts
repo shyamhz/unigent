@@ -1,41 +1,36 @@
-import { readFileSync, writeFileSync, existsSync } from 'node:fs';
-import { join } from 'node:path';
-
-const CONFIG_PATH = join(process.cwd(), 'ai-config.json');
+import { eq } from 'drizzle-orm';
+import { db } from '@/server/db';
+import { aiConfig } from '@/server/db/schema';
 
 export interface AIConfig {
   model: string;
-  temperature: number;
-  maxTokens: number;
-  maxSteps: number;
-  provider: string;
 }
 
-const DEFAULT_CONFIG: AIConfig = {
-  model: 'openai/gpt-4o-mini',
-  temperature: 0.7,
-  maxTokens: 4096,
-  maxSteps: 15,
-  provider: 'aicredits',
-};
+const DEFAULT_MODEL = 'openai/gpt-4o-mini';
 
-export function getAIConfig(): AIConfig {
-  if (!existsSync(CONFIG_PATH)) {
-    writeFileSync(CONFIG_PATH, JSON.stringify(DEFAULT_CONFIG, null, 2));
-    return { ...DEFAULT_CONFIG };
+export async function getAIConfig(): Promise<AIConfig> {
+  const [row] = await db
+    .select()
+    .from(aiConfig)
+    .where(eq(aiConfig.id, 'default'))
+    .limit(1);
+
+  if (row) {
+    return { model: row.model };
   }
-  try {
-    const raw = readFileSync(CONFIG_PATH, 'utf-8');
-    const parsed = JSON.parse(raw);
-    return { ...DEFAULT_CONFIG, ...parsed };
-  } catch {
-    return { ...DEFAULT_CONFIG };
-  }
+
+  await db.insert(aiConfig).values({ id: 'default', model: DEFAULT_MODEL });
+  return { model: DEFAULT_MODEL };
 }
 
-export function setAIConfig(config: Partial<AIConfig>): AIConfig {
-  const current = getAIConfig();
+export async function setAIConfig(config: Partial<AIConfig>): Promise<AIConfig> {
+  const current = await getAIConfig();
   const updated = { ...current, ...config };
-  writeFileSync(CONFIG_PATH, JSON.stringify(updated, null, 2));
+
+  await db
+    .update(aiConfig)
+    .set({ model: updated.model, updatedAt: new Date() })
+    .where(eq(aiConfig.id, 'default'));
+
   return updated;
 }

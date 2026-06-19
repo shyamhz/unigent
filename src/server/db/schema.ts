@@ -1,4 +1,4 @@
-import { pgTable, text, jsonb, timestamp, uuid, index } from "drizzle-orm/pg-core";
+import { pgTable, text, jsonb, timestamp, uuid, index, uniqueIndex } from "drizzle-orm/pg-core";
 
 export const corsairIntegrations = pgTable("corsair_integrations", {
   id: text("id").primaryKey(),
@@ -94,4 +94,15 @@ export const chatMessages = pgTable(
       .defaultNow(),
   },
   (table) => [index("idx_chat_messages_session").on(table.sessionId)],
+);
+
+export const aiConfig = pgTable(
+  "ai_config",
+  {
+    id: text("id").primaryKey().default("default"),
+    model: text("model").notNull().default("openai/gpt-4o-mini"),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
 );

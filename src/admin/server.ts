@@ -8,6 +8,9 @@ import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import * as schema from "../server/db/schema";
 
+// Force production URL for emails — admin runs locally but sends to real users
+process.env.NEXT_PUBLIC_APP_URL = "https://unigent.in";
+
 const PORT = Number(process.env.ADMIN_PORT || 3001);
 const HOST = "127.0.0.1";
 

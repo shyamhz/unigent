@@ -1,4 +1,4 @@
-import { corsair } from "@/utils/corsair";
+import { corsair } from "@/server/services/corsair";
 
 import type {
   SearchEmailsOptions,

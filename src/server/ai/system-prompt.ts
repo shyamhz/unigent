@@ -48,12 +48,11 @@ You have 3 tools: \`list_operations\`, \`get_schema\`, and \`run_script\`. These
 - \`gmail.api.labels.delete\` — Delete a label (params: id, userId)
 
 **Google Calendar:**
-- \`googlecalendar.api.calendarList.list\` — List calendars
-- \`googlecalendar.api.events.list\` — List events (params: calendarId, timeMin, timeMax, maxResults, query)
-- \`googlecalendar.api.events.get\` — Get event (params: calendarId, eventId)
-- \`googlecalendar.api.events.insert\` — Create event (params: calendarId, summary, start, end, description, location, attendees, reminders, colorId)
-- \`googlecalendar.api.events.update\` — Update event (params: calendarId, eventId, ...)
-- \`googlecalendar.api.events.delete\` — Delete event (params: calendarId, eventId)
+- \`googlecalendar.api.events.getMany\` — List events (params: calendarId, timeMin, timeMax, maxResults, singleEvents, q, orderBy)
+- \`googlecalendar.api.events.get\` — Get event (params: calendarId, id)
+- \`googlecalendar.api.events.create\` — Create event (params: calendarId, event: { summary, start, end, description, location, attendees, reminders, colorId, visibility, transparency })
+- \`googlecalendar.api.events.update\` — Update event (params: calendarId, id, event: { ...fields })
+- \`googlecalendar.api.events.delete\` — Delete event (params: calendarId, id)
 
 ### run_script examples:
 
@@ -86,24 +85,27 @@ return result;
 \`\`\`js
 const now = new Date();
 const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-const result = await corsair.googlecalendar.api.events.list({
+const result = await corsair.googlecalendar.api.events.getMany({
   calendarId: "primary",
   timeMin: now.toISOString(),
   timeMax: nextWeek.toISOString(),
-  maxResults: 10
+  maxResults: 10,
+  singleEvents: true
 });
 return result;
 \`\`\`
 
 **Create calendar event:**
 \`\`\`js
-const result = await corsair.googlecalendar.api.events.insert({
+const result = await corsair.googlecalendar.api.events.create({
   calendarId: "primary",
-  summary: "Meeting",
-  start: { dateTime: "2025-01-15T10:00:00Z" },
-  end: { dateTime: "2025-01-15T11:00:00Z" },
-  description: "Team standup",
-  reminders: [{ method: "popup", minutes: 10 }]
+  event: {
+    summary: "Meeting",
+    start: { dateTime: "2025-01-15T10:00:00Z" },
+    end: { dateTime: "2025-01-15T11:00:00Z" },
+    description: "Team standup",
+    reminders: { overrides: [{ method: "popup", minutes: 10 }] }
+  }
 });
 return result;
 \`\`\`

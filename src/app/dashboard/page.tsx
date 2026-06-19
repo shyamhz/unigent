@@ -1,5 +1,5 @@
 import DashboardLayout from '@/client/components/dashboard/DashboardLayout';
-import { isHostedAvailable } from '@/server/services/corsair-hosted';
+import { isHostedAvailable, isPluginConnected } from '@/server/services/corsair-hosted';
 import { auth, clerkClient } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 
@@ -19,11 +19,24 @@ export default async function Home() {
     redirect('/waiting');
   }
 
-  const connections = (meta.connections ?? {}) as Record<string, unknown>;
-  const gmailConnected = connections.gmail === true;
-  const calendarConnected = connections.calendar === true;
+  // Check connection status from Corsair (source of truth)
+  let gmailConnected = false;
+  let calendarConnected = false;
 
-  // Show connect banner if not both connected
+  if (isHostedAvailable()) {
+    try {
+      [gmailConnected, calendarConnected] = await Promise.all([
+        isPluginConnected(userId, 'gmail'),
+        isPluginConnected(userId, 'googlecalendar'),
+      ]);
+    } catch {
+      // Fall back to Clerk metadata if Corsair is unreachable
+      const connections = (meta.connections ?? {}) as Record<string, unknown>;
+      gmailConnected = connections.gmail === true;
+      calendarConnected = connections.calendar === true;
+    }
+  }
+
   const showConnectBanner = isHostedAvailable() && (!gmailConnected || !calendarConnected);
 
   return (

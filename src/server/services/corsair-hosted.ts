@@ -35,6 +35,15 @@ export async function deleteTenant(tenantId: string): Promise<boolean> {
   }
 }
 
+export async function isPluginConnected(tenantId: string, pluginId: string): Promise<boolean> {
+  if (!isHostedAvailable()) return false;
+  const inst = getInst();
+  const creds = await inst.plugins.credentials.list(pluginId as 'gmail' | 'googlecalendar', tenantId);
+  const required = ['access_token', 'refresh_token', 'expires_at'];
+  const accountFields = creds.fields.filter((f) => f.scope === 'account');
+  return required.every((r) => accountFields.find((f) => f.field === r && f.set));
+}
+
 export async function getHostedTools(tenantId: string): Promise<Record<string, Tool>> {
   const inst = getInst();
   const corsairTenantId = await getOrCreateTenant(tenantId);

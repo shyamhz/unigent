@@ -13,7 +13,6 @@ if (process.env.NODE_ENV === "production") {
 
 const PORT = Number(process.env.ADMIN_PORT || 3001);
 const HOST = "127.0.0.1";
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "unigent-admin-2026";
 
 const clerk = createClerkClient({
   secretKey: process.env.CLERK_SECRET_KEY!,
@@ -45,14 +44,6 @@ async function parseBody(req: IncomingMessage): Promise<any> {
 function json(res: ServerResponse, data: any, status = 200) {
   res.writeHead(status, { "Content-Type": "application/json" });
   res.end(JSON.stringify(data));
-}
-
-async function handleAuth(_req: IncomingMessage, res: ServerResponse) {
-  const body = await parseBody(_req);
-  if (body.password === ADMIN_PASSWORD) {
-    return json(res, { ok: true });
-  }
-  return json(res, { ok: false }, 401);
 }
 
 async function handleUsers(_req: IncomingMessage, res: ServerResponse) {
@@ -194,9 +185,6 @@ const server = createServer(async (req, res) => {
   if (url.pathname === "/" && req.method === "GET") {
     return serveHTML(res);
   }
-  if (url.pathname === "/api/auth" && req.method === "POST") {
-    return handleAuth(req, res);
-  }
   if (url.pathname === "/api/users" && req.method === "GET") {
     return handleUsers(req, res);
   }
@@ -222,6 +210,5 @@ const server = createServer(async (req, res) => {
 
 server.listen(PORT, HOST, () => {
   console.log(`\n  ⚡ Unigent Admin Panel`);
-  console.log(`  → http://${HOST}:${PORT}`);
-  console.log(`  → Password: ${process.env.ADMIN_PASSWORD ? "SET" : "MISSING"}\n`);
+  console.log(`  → http://${HOST}:${PORT}\n`);
 });

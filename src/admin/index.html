@@ -9,12 +9,7 @@
     body { font-family: -apple-system, 'Segoe UI', sans-serif; background: #0B0B0D; color: #F5F5F7; min-height: 100vh; }
     .container { max-width: 1100px; margin: 0 auto; padding: 0 20px; }
 
-    /* Login */
-    .login-wrap { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
-    .login-card { background: #131316; border: 1px solid rgba(255,255,255,0.10); border-radius: 14px; padding: 36px; width: 100%; max-width: 380px; }
-    .login-logo { text-align: center; margin-bottom: 24px; }
-    .login-logo span { display: inline-flex; align-items: center; gap: 8px; background: rgba(111,107,239,0.12); padding: 8px 16px; border-radius: 8px; font-size: 14px; font-weight: 600; color: #6F6BEF; }
-    .login-card h1 { text-align: center; font-size: 20px; font-weight: 600; margin-bottom: 24px; }
+    /* Forms & Buttons */
     label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px; }
     input, select { width: 100%; background: #1C1C22; border: 1px solid rgba(255,255,255,0.10); border-radius: 8px; padding: 10px 12px; font-size: 14px; color: #F5F5F7; outline: none; }
     input:focus, select:focus { border-color: #6F6BEF; }
@@ -28,7 +23,6 @@
     .btn-revoke:hover { background: rgba(226,75,74,0.26); }
     .btn-ghost { background: transparent; color: #9B9BA3; font-size: 12px; }
     .btn-ghost:hover { color: #F5F5F7; }
-    .error { color: #F09595; font-size: 13px; margin-bottom: 12px; }
 
     /* Header */
     header { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 32px; }
@@ -87,25 +81,8 @@
 </head>
 <body>
 
-  <!-- Login Screen -->
-  <div id="login-screen" class="login-wrap">
-    <div class="login-card">
-      <div class="login-logo">
-        <span>&#9889; Admin</span>
-      </div>
-      <h1>Unigent Admin</h1>
-      <div id="login-error" class="error" style="display:none"></div>
-      <form onsubmit="handleLogin(event)">
-        <label>Password</label>
-        <input type="password" id="password" placeholder="Enter admin password" autofocus />
-        <br/><br/>
-        <button type="submit" class="btn btn-primary" id="login-btn">Sign in</button>
-      </form>
-    </div>
-  </div>
-
   <!-- Dashboard -->
-  <div id="dashboard" style="display:none">
+  <div id="dashboard">
     <div class="container">
       <header>
         <div class="header-left">
@@ -114,7 +91,7 @@
           </div>
           <span>Unigent Admin</span>
         </div>
-        <button class="btn btn-ghost" onclick="handleLogout()">Sign out</button>
+        <button class="btn btn-ghost" onclick="loadUsers()">Refresh</button>
       </header>
 
       <div class="stats">
@@ -175,7 +152,6 @@
 
   <script>
     const API = '';
-    let token = '';
 
     function showMsg(text) {
       const el = document.getElementById('msg');
@@ -189,35 +165,6 @@
       if (body) opts.body = JSON.stringify(body);
       const res = await fetch(API + path, opts);
       return res.json();
-    }
-
-    async function handleLogin(e) {
-      e.preventDefault();
-      const pw = document.getElementById('password').value;
-      const errEl = document.getElementById('login-error');
-      errEl.style.display = 'none';
-      try {
-        const data = await api('/api/auth', 'POST', { password: pw });
-        if (data.ok) {
-          token = pw;
-          document.getElementById('login-screen').style.display = 'none';
-          document.getElementById('dashboard').style.display = 'block';
-          loadUsers();
-          loadAIConfig();
-        } else {
-          errEl.textContent = 'Invalid password';
-          errEl.style.display = 'block';
-        }
-      } catch {
-        errEl.textContent = 'Connection failed';
-        errEl.style.display = 'block';
-      }
-    }
-
-    function handleLogout() {
-      document.getElementById('dashboard').style.display = 'none';
-      document.getElementById('login-screen').style.display = 'flex';
-      document.getElementById('password').value = '';
     }
 
     async function loadUsers() {
@@ -328,6 +275,7 @@
       showMsg(data.ok ? 'AI config saved.' : 'Error: ' + (data.error || 'Unknown'));
     }
 
+    loadUsers();
     loadAIConfig();
   </script>
 </body>

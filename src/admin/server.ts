@@ -104,8 +104,8 @@ async function handleGrant(_req: IncomingMessage, res: ServerResponse) {
     let emailSent = false;
     let emailError = "";
     try {
-      const { sendEmail } = await import("../../server/services/email");
-      const { getAccessGrantedEmail } = await import("../../emails/access-granted");
+      const { sendEmail } = await import("../server/services/email");
+      const { getAccessGrantedEmail } = await import("../emails/access-granted");
       const email = user.emailAddresses?.[0]?.emailAddress;
       if (email) {
         await sendEmail({
